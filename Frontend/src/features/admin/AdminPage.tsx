@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { KPICard } from '@/components/patterns/KPICard';
@@ -49,6 +49,21 @@ export function AdminPage() {
   const { addToast } = useUIStore();
   const [members, setMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+
+  // Strictly lock background body and html scrolling when modal is open
+  useEffect(() => {
+    if (isInviteOpen) {
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+      };
+    }
+  }, [isInviteOpen]);
 
   // Form State
   const [newName, setNewName] = useState('');
@@ -226,10 +241,15 @@ export function AdminPage() {
 
       {/* Interactive Provision / Invite Team Member Modal */}
       {isInviteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/50 backdrop-blur-sm p-4 flex items-center justify-center animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsInviteOpen(false);
+          }}
+        >
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 my-auto">
             {/* Modal Header */}
-            <div className="p-5 border-b border-neutral-200 flex items-center justify-between bg-neutral-50">
+            <div className="p-5 border-b border-neutral-200 flex items-center justify-between bg-neutral-50 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                   <Plus className="w-4 h-4" />
@@ -240,6 +260,7 @@ export function AdminPage() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsInviteOpen(false)}
                 className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition-colors"
               >
@@ -248,7 +269,7 @@ export function AdminPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleInviteSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleInviteSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <Input
                 label="Full Name"
                 value={newName}
