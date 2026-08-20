@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { withFallback, ApiError } from '../apiClient';
 
 describe('Frontend API Client Resilience Tests', () => {

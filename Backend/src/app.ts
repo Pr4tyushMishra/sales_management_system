@@ -24,8 +24,20 @@ export function createApp(): Express {
         // Allow requests with no origin (like mobile apps, curl, server-to-server)
         if (!origin) return callback(null, true);
 
-        // Always allow configured client URL
-        if (origin === env.CLIENT_URL || origin === 'http://localhost:3000' || origin === 'http://localhost:5173') {
+        // Allow configured client URLs (supports comma-separated list)
+        const allowedOrigins = (env.CLIENT_URL || '')
+          .split(',')
+          .map((url) => url.trim().replace(/\/$/, ''))
+          .filter(Boolean);
+
+        const normalizedOrigin = origin.replace(/\/$/, '');
+
+        if (
+          allowedOrigins.includes(normalizedOrigin) ||
+          normalizedOrigin === 'http://localhost:3000' ||
+          normalizedOrigin === 'http://localhost:5173' ||
+          normalizedOrigin.endsWith('.vercel.app')
+        ) {
           return callback(null, true);
         }
 

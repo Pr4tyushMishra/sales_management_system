@@ -18,9 +18,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["vite/client", "vitest/globals"]
   },
   "include": ["src"],
-  "exclude": ["src/**/__tests__/*", "e2e/*"],
+  "exclude": ["e2e/*"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

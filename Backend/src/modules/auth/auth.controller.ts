@@ -11,7 +11,7 @@ export class AuthController {
     res.cookie('accessToken', result.tokens.accessToken, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000, // 15 mins
     });
 
@@ -24,7 +24,7 @@ export class AuthController {
     res.cookie('accessToken', result.tokens.accessToken, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000,
     });
 
@@ -38,7 +38,7 @@ export class AuthController {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000,
     });
 
@@ -53,7 +53,11 @@ export class AuthController {
       await authService.logout(userId, refreshToken);
     }
 
-    res.clearCookie('accessToken');
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
     ApiResponse.success(res, { loggedOut: true }, 200, undefined, 'Logged out successfully');
   }
 

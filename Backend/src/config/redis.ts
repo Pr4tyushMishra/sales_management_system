@@ -5,10 +5,13 @@ let redisClient: Redis | null = null;
 
 export function getRedisClient(): Redis {
   if (!redisClient) {
+    const isCloudRedis = env.REDIS_HOST !== 'localhost' && env.REDIS_HOST !== '127.0.0.1';
+
     redisClient = new Redis({
       host: env.REDIS_HOST,
       port: env.REDIS_PORT,
       password: env.REDIS_PASSWORD || undefined,
+      tls: isCloudRedis ? { rejectUnauthorized: false } : undefined,
       lazyConnect: true,
       maxRetriesPerRequest: null,
       retryStrategy(times) {
