@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { healthRouter } from './health.routes.js';
 import { authRouter } from '../modules/auth/auth.routes.js';
 import { leadRouter } from '../modules/leads/lead.routes.js';
@@ -14,7 +14,7 @@ import { automationRouter } from '../modules/automations/automation.routes.js';
 export const apiRouter = Router();
 
 // Root API v1 Information
-apiRouter.get('/', (_req, res) => {
+apiRouter.get('/', (_req: Request, res: Response) => {
   res.json({
     app: 'ADVMEN SalesOS API',
     version: 'v1.0.0',
