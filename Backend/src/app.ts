@@ -71,7 +71,18 @@ export function createApp(): Express {
   // 3. Health check probes (unversioned, unthrottled for orchestrators)
   app.use('/health', healthRouter);
 
-  // 4. API v1 Router Mount
+  // 4. Root Service Info / Ping Handler
+  app.get('/', (_req: Request, res: Response) => {
+    res.status(200).json({
+      status: 'ok',
+      message: 'ADVMEN SalesOS API Server is running',
+      version: 'v1.0.0',
+      health: '/health/live',
+      api: '/api/v1',
+    });
+  });
+
+  // 5. API v1 Router Mount
   app.use('/api/v1', apiRouter);
 
   // 5. 404 Fallback for Unmatched Routes
