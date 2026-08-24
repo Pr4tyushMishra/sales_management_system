@@ -82,6 +82,11 @@ export function createApp(): Express {
     });
   });
 
+  // Handle browser favicon ping without error logs
+  app.get('/favicon.ico', (_req: Request, res: Response) => {
+    res.status(204).end();
+  });
+
   // 5. API v1 Router Mount
   app.use('/api/v1', apiRouter);
 

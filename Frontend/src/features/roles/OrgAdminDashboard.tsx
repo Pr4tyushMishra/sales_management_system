@@ -2,7 +2,6 @@ import { KPICard } from '@/components/patterns/KPICard';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
-import { useUIStore } from '@/stores/uiStore';
 import {
   Users,
   DollarSign,
@@ -15,7 +14,6 @@ import { useNavigate } from 'react-router-dom';
 
 export function OrgAdminDashboard() {
   const navigate = useNavigate();
-  const { addToast } = useUIStore();
 
   return (
     <div className="space-y-fib-21">
@@ -48,9 +46,7 @@ export function OrgAdminDashboard() {
             size="sm"
             variant="primary"
             icon={<Users className="w-3.5 h-3.5" />}
-            onClick={() => {
-              addToast({ type: 'info', title: 'Seat Provisioning', message: '42 of 50 Enterprise seats utilized.' });
-            }}
+            onClick={() => navigate('/admin')}
           >
             Provision Seats
           </Button>

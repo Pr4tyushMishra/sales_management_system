@@ -10,6 +10,8 @@ import { proposalRouter } from '../modules/proposals/proposal.routes.js';
 import { invoiceRouter } from '../modules/invoices-payments/invoice.routes.js';
 import { activityRouter } from '../modules/activities/activity.routes.js';
 import { automationRouter } from '../modules/automations/automation.routes.js';
+import { userRouter } from '../modules/users/user.routes.js';
+import { organizationRouter } from '../modules/organizations/organization.routes.js';
 
 export const apiRouter = Router();
 
@@ -25,6 +27,8 @@ apiRouter.get('/', (_req: Request, res: Response) => {
 
 // Domain Modules
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/users', userRouter);
+apiRouter.use('/organizations', organizationRouter);
 apiRouter.use('/leads', leadRouter);
 apiRouter.use('/deals', dealRouter);
 apiRouter.use('/calls', callRouter);

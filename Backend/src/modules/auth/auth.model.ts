@@ -11,6 +11,7 @@ export interface IUser extends Document {
   role: UserRole;
   permissions: PermissionKey[];
   avatarUrl?: string;
+  department?: string;
   phone?: string;
   isActive: boolean;
   isEmailVerified: boolean;
@@ -64,6 +65,11 @@ const UserSchema = new Schema<IUser>(
     },
     avatarUrl: {
       type: String,
+    },
+    department: {
+      type: String,
+      default: 'General Sales',
+      trim: true,
     },
     phone: {
       type: String,

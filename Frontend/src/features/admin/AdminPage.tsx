@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { KPICard } from '@/components/patterns/KPICard';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUIStore } from '@/stores/uiStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import { UserRole } from '@/types';
+import { usersApi, UserDto } from './api/usersApi';
 import {
   Users,
   Shield,
@@ -16,25 +18,11 @@ import {
   X,
   Sparkles,
   CheckCircle2,
+  Trash2,
+  AlertTriangle,
+  RefreshCw,
+  Search,
 } from 'lucide-react';
-
-interface TeamMember {
-  name: string;
-  role: UserRole;
-  email: string;
-  seats: string;
-  avatarUrl?: string;
-  department?: string;
-}
-
-const INITIAL_TEAM_MEMBERS: TeamMember[] = [
-  { name: 'Sarah Chen', role: 'ORG_ADMIN', email: 'sarah.c@acmecorp.com', seats: 'Active', avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80', department: 'Executive Ops' },
-  { name: 'Marcus Vance', role: 'SALES_MANAGER', email: 'marcus.v@acmecorp.com', seats: 'Active', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', department: 'Global Sales' },
-  { name: 'Devon Patel', role: 'SALES_REP', email: 'devon.p@acmecorp.com', seats: 'Active', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', department: 'Mid-Market Sales' },
-  { name: 'Elena Rostova', role: 'TELECALLER', email: 'elena.r@acmecorp.com', seats: 'Active', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80', department: 'Outreach & Telephony' },
-  { name: 'Jordan Miller', role: 'MARKETING_SDR', email: 'jordan.m@acmecorp.com', seats: 'Active', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80', department: 'Inbound Demand' },
-  { name: 'Victoria Cross', role: 'FINANCE_VIEWER', email: 'victoria.c@acmecorp.com', seats: 'Active', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', department: 'Finance & Billing' },
-];
 
 const AVAILABLE_ROLES: { role: UserRole; label: string; description: string }[] = [
   { role: 'SALES_REP', label: 'Sales Representative', description: 'Access to Deals pipeline, Leads, and Quotes' },
@@ -47,12 +35,18 @@ const AVAILABLE_ROLES: { role: UserRole; label: string; description: string }[] 
 
 export function AdminPage() {
   const { addToast } = useUIStore();
-  const [members, setMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
+  const { user: currentUser, organizationId } = useSessionStore();
+  const [members, setMembers] = useState<UserDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<UserDto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('ALL');
 
   // Strictly lock background body and html scrolling when modal is open
   useEffect(() => {
-    if (isInviteOpen) {
+    if (isInviteOpen || memberToDelete) {
       const originalBodyOverflow = document.body.style.overflow;
       const originalHtmlOverflow = document.documentElement.style.overflow;
       document.body.style.overflow = 'hidden';
@@ -63,7 +57,31 @@ export function AdminPage() {
         document.documentElement.style.overflow = originalHtmlOverflow;
       };
     }
-  }, [isInviteOpen]);
+  }, [isInviteOpen, memberToDelete]);
+
+  // Fetch live team members from database
+  const loadTeamMembers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await usersApi.getUsers();
+      if (Array.isArray(data)) {
+        setMembers(data);
+      }
+    } catch (err: any) {
+      console.error('Failed to load team members:', err);
+      addToast({
+        type: 'danger',
+        title: 'Error Loading Members',
+        message: err?.message || 'Could not fetch user roster.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => {
+    loadTeamMembers();
+  }, [loadTeamMembers, organizationId]);
 
   // Form State
   const [newName, setNewName] = useState('');
@@ -83,7 +101,7 @@ export function AdminPage() {
     setNewPassword(pass);
   };
 
-  const handleInviteSubmit = (e: React.FormEvent) => {
+  const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newEmail.trim()) {
       addToast({
@@ -95,17 +113,17 @@ export function AdminPage() {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const newMember: TeamMember = {
+    try {
+      const createdUser = await usersApi.createUser({
         name: newName.trim(),
         email: newEmail.trim().toLowerCase(),
+        password: newPassword,
         role: newRole,
-        seats: 'Active',
         department: department.trim() || 'General Sales',
-      };
+      });
 
-      setMembers((prev) => [newMember, ...prev]);
-      setIsSubmitting(false);
+      // Instantly prepend newly created user in UI
+      setMembers((prev) => [createdUser, ...prev.filter((m) => m.id !== createdUser.id)]);
       setIsInviteOpen(false);
 
       // Reset form
@@ -113,14 +131,59 @@ export function AdminPage() {
       setNewEmail('');
       setNewRole('SALES_REP');
       setNewPassword('SalesOS2026!Secure');
+      setDepartment('Sales Operations');
 
       addToast({
         type: 'success',
-        title: `Team Member Provisioned!`,
-        message: `Successfully created ${newRole.replace(/_/g, ' ')} account for ${newMember.name} (${newMember.email}).`,
+        title: 'Team Member Provisioned!',
+        message: `Created ${newRole.replace(/_/g, ' ')} account for ${createdUser.name} (${createdUser.email}). Ready to sign in!`,
       });
-    }, 400);
+    } catch (err: any) {
+      console.error('Failed to provision team member:', err);
+      addToast({
+        type: 'danger',
+        title: 'Provisioning Failed',
+        message: err?.message || 'Could not provision new team member.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleDeleteMember = async () => {
+    if (!memberToDelete) return;
+    setIsDeleting(true);
+    try {
+      await usersApi.deleteUser(memberToDelete.id);
+      setMembers((prev) => prev.filter((m) => m.id !== memberToDelete.id));
+      addToast({
+        type: 'success',
+        title: 'Member Removed',
+        message: `Successfully removed ${memberToDelete.name} from active workspace roster.`,
+      });
+      setMemberToDelete(null);
+    } catch (err: any) {
+      console.error('Failed to delete member:', err);
+      addToast({
+        type: 'danger',
+        title: 'Removal Failed',
+        message: err?.message || 'Failed to remove user account.',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const filteredMembers = members.filter((m) => {
+    const matchesSearch =
+      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.department && m.department.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesRole = roleFilter === 'ALL' || m.role === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
 
   return (
     <div className="space-y-fib-21">
@@ -135,14 +198,25 @@ export function AdminPage() {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<Plus className="w-3.5 h-3.5" />}
-          onClick={() => setIsInviteOpen(true)}
-        >
-          Add Team Member
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />}
+            onClick={() => loadTeamMembers()}
+            disabled={isLoading}
+          >
+            Refresh Roster
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus className="w-3.5 h-3.5" />}
+            onClick={() => setIsInviteOpen(true)}
+          >
+            Add Team Member
+          </Button>
+        </div>
       </div>
 
       {/* KPI Tiles */}
@@ -151,7 +225,7 @@ export function AdminPage() {
           <KPICard
             label="Active Seats Utilized"
             value={`${members.length} / 50`}
-            delta={`${50 - members.length} Available`}
+            delta={`${Math.max(0, 50 - members.length)} Available`}
             deltaDirection="up"
             accent="blue"
             icon={<Users className="w-4 h-4" />}
@@ -161,7 +235,7 @@ export function AdminPage() {
         <WidgetBoundary name="kpi-role-types">
           <KPICard
             label="Configured Roles"
-            value="7 Roles"
+            value={`${new Set(members.map((m) => m.role)).size} Active Roles`}
             subtext="Zero-trust RBAC matrix"
             accent="neutral"
             icon={<Shield className="w-4 h-4" />}
@@ -192,7 +266,7 @@ export function AdminPage() {
       {/* Team Member Management Table */}
       <WidgetBoundary name="admin-team-table">
         <div className="skeuo-raised-2 bg-white rounded-md border border-neutral-200 overflow-hidden shadow-sm">
-          <div className="p-fib-13 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
+          <div className="p-fib-13 bg-neutral-50 border-b border-neutral-200 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
                 Tenant User Roster & Role Assignments
@@ -201,47 +275,155 @@ export function AdminPage() {
                 Active seats with cryptographic tenant isolation and assigned permission gates.
               </p>
             </div>
-            <span className="text-[11px] font-semibold text-neutral-600 font-mono bg-white px-2.5 py-1 rounded border border-neutral-200">
-              {members.length} Enrolled Users
-            </span>
+
+            {/* Filter & Search Controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Filter by name, email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="text-xs pl-8 pr-3 py-1.5 rounded-lg border border-neutral-300 bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-blue-500 w-48 sm:w-56"
+                />
+              </div>
+
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="text-xs px-2.5 py-1.5 rounded-lg border border-neutral-300 bg-white text-neutral-800 focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                <option value="ALL">All Roles ({members.length})</option>
+                {AVAILABLE_ROLES.map((r) => (
+                  <option key={r.role} value={r.role}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+
+              <span className="text-[11px] font-semibold text-neutral-600 font-mono bg-white px-2.5 py-1 rounded border border-neutral-200">
+                {filteredMembers.length} Enrolled
+              </span>
+            </div>
           </div>
 
           <div className="divide-y divide-neutral-100">
-            {members.map((m, i) => (
-              <div
-                key={i}
-                className="p-fib-13 flex flex-wrap items-center justify-between gap-fib-13 hover:bg-neutral-50/80 transition-colors text-xs"
-              >
-                <div className="flex items-center gap-3 min-w-[220px]">
-                  <Avatar name={m.name} src={m.avatarUrl} size="md" status="online" />
-                  <div>
-                    <span className="font-bold text-neutral-900 block">{m.name}</span>
-                    <span className="text-[11px] text-neutral-500 font-mono">{m.email}</span>
-                  </div>
-                </div>
-
-                <div className="text-neutral-500 text-[11px] hidden md:block">
-                  <span className="font-medium text-neutral-700">{m.department || 'Operations'}</span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-mono">
-                    {m.role.replace(/_/g, ' ')}
-                  </span>
-                  <span className="text-neutral-600 font-medium flex items-center gap-1">
-                    <UserCheck className="w-3.5 h-3.5 text-green-600" />
-                    {m.seats}
-                  </span>
-                </div>
+            {isLoading ? (
+              <div className="p-8 text-center text-xs text-neutral-500 flex items-center justify-center gap-2 font-mono">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span>Loading workspace roster...</span>
               </div>
-            ))}
+            ) : filteredMembers.length === 0 ? (
+              <div className="p-12 text-center text-xs text-neutral-500">
+                No team members match the search query.
+              </div>
+            ) : (
+              filteredMembers.map((m) => {
+                const isCurrentAccount = m.id === currentUser.id || m.email === currentUser.email;
+
+                return (
+                  <div
+                    key={m.id || m.email}
+                    className="p-fib-13 flex flex-wrap items-center justify-between gap-fib-13 hover:bg-neutral-50/80 transition-colors text-xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-[220px]">
+                      <Avatar name={m.name} src={m.avatarUrl} size="md" status={m.isActive ? 'online' : 'offline'} />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-neutral-900 block">{m.name}</span>
+                          {isCurrentAccount && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-800">
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-neutral-500 font-mono">{m.email}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-neutral-500 text-[11px] hidden md:block">
+                      <span className="font-medium text-neutral-700">{m.department || 'General Sales'}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-mono">
+                        {m.role.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-neutral-600 font-medium flex items-center gap-1">
+                        <UserCheck className="w-3.5 h-3.5 text-green-600" />
+                        {m.isActive !== false ? 'Active' : 'Deactivated'}
+                      </span>
+
+                      {!isCurrentAccount && (
+                        <button
+                          type="button"
+                          onClick={() => setMemberToDelete(m)}
+                          className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ml-2"
+                          title={`Remove ${m.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </WidgetBoundary>
 
+      {/* Remove Team Member Confirmation Modal */}
+      {memberToDelete && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm p-4 flex items-center justify-center animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeleting) setMemberToDelete(null);
+          }}
+        >
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 my-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-neutral-900">Remove Team Member</h3>
+                <p className="text-xs text-neutral-500">Revoke workspace access and permissions.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-neutral-600 leading-relaxed">
+              Are you sure you want to remove <strong className="text-neutral-900">{memberToDelete.name}</strong> (
+              <span className="font-mono text-neutral-700">{memberToDelete.email}</span>)? They will no longer be able to log in or access tenant resources.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-100">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setMemberToDelete(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteMember}
+                isLoading={isDeleting}
+                icon={<Trash2 className="w-4 h-4" />}
+              >
+                Confirm Removal
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Interactive Provision / Invite Team Member Modal */}
       {isInviteOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/50 backdrop-blur-sm p-4 flex items-center justify-center animate-in fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsInviteOpen(false);
@@ -342,7 +524,7 @@ export function AdminPage() {
                 <div className="space-y-0.5 text-[11px] leading-relaxed">
                   <p className="font-semibold text-blue-900">Immediate Seat Provisioning</p>
                   <p className="text-blue-800">
-                    The user will be immediately authorized to sign in with this email and temporary password to access their role dashboard.
+                    The user will be immediately authorized to sign in with this email and password to access their role dashboard.
                   </p>
                 </div>
               </div>

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore, ROLE_DASHBOARDS } from '@/stores/sessionStore';
 import { useUIStore } from '@/stores/uiStore';
+import { organizationsApi, TenantOrgDto } from '@/features/admin/api/organizationsApi';
 
 import { UserProfileDrawer } from '@/components/patterns/UserProfileDrawer';
 import {
@@ -27,12 +28,17 @@ export function TopBar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
+  const [organizations, setOrganizations] = useState<TenantOrgDto[]>([
+    { id: 'org_acme_corp', organizationId: 'org_acme_corp', name: 'Acme Enterprise Inc.', tier: 'ENTERPRISE_PLUS', activeUsers: 6, maxUsers: 50, storageGb: 148, apiCalls24h: 184500, health: 'HEALTHY', slaStatus: 'COMPLIANT' },
+  ]);
 
-  const organizations = [
-    { id: 'org_acme_corp', name: 'Acme Enterprise Inc.' },
-    { id: 'org_apex_global', name: 'Apex Capital Global' },
-    { id: 'org_nordic_tech', name: 'Nordic AI Technologies' },
-  ];
+  useEffect(() => {
+    organizationsApi.getOrganizations().then((orgs) => {
+      if (Array.isArray(orgs) && orgs.length > 0) {
+        setOrganizations(orgs);
+      }
+    }).catch(() => {});
+  }, [user.organizationId]);
 
   const handleLogout = async () => {
     // store.logout() calls authApi.logout() internally — calling it directly here too
@@ -74,33 +80,38 @@ export function TopBar() {
                 <span className="px-fib-8 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
                   Active Tenant Workspace
                 </span>
-                {organizations.map((org) => (
-                  <button
-                    key={org.id}
-                    onClick={() => {
-                      switchOrganization(org.id, org.name);
-                      setOrgMenuOpen(false);
-                      addToast({
-                        type: 'info',
-                        title: 'Tenant Switched',
-                        message: `Active workspace: ${org.name}`,
-                      });
-                    }}
-                    className={cn(
-                      'w-full text-left px-fib-8 py-fib-5 rounded-md text-xs flex items-center justify-between font-medium transition-colors',
-                      user.organizationId === org.id
-                        ? 'bg-blue-50 text-blue-700 font-bold'
-                        : 'text-neutral-700 hover:bg-neutral-100'
-                    )}
-                  >
-                    <span>{org.name}</span>
-                    {user.organizationId === org.id && (
-                      <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">
-                        ACTIVE
-                      </span>
-                    )}
-                  </button>
-                ))}
+                {organizations.map((org) => {
+                  const orgId = org.organizationId || org.id;
+                  const isCurrent = user.organizationId === orgId;
+
+                  return (
+                    <button
+                      key={orgId}
+                      onClick={() => {
+                        switchOrganization(orgId, org.name);
+                        setOrgMenuOpen(false);
+                        addToast({
+                          type: 'info',
+                          title: 'Tenant Switched',
+                          message: `Active workspace: ${org.name}`,
+                        });
+                      }}
+                      className={cn(
+                        'w-full text-left px-fib-8 py-fib-5 rounded-md text-xs flex items-center justify-between font-medium transition-colors',
+                        isCurrent
+                          ? 'bg-blue-50 text-blue-700 font-bold'
+                          : 'text-neutral-700 hover:bg-neutral-100'
+                      )}
+                    >
+                      <span>{org.name}</span>
+                      {isCurrent && (
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">
+                          ACTIVE
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </>
           )}
