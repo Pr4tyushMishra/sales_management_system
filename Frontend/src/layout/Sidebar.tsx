@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUIStore } from '@/stores/uiStore';
@@ -34,6 +34,21 @@ export function Sidebar() {
   const { user } = useSessionStore();
   const { sidebarCollapsed, toggleSidebar, mobileSidebarOpen, setMobileSidebarOpen } = useUIStore();
   const location = useLocation();
+
+  // Prevent background scrolling on mobile when sidebar drawer is open
+  useEffect(() => {
+    if (mobileSidebarOpen) {
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+      };
+    }
+  }, [mobileSidebarOpen]);
 
   const userRoleDashboardPath = ROLE_DASHBOARDS[user.role] || '/leads';
 

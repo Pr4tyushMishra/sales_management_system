@@ -40,6 +40,30 @@ export function TopBar() {
     }).catch(() => {});
   }, [user.organizationId]);
 
+  // Auto-collapse open dropdown menus when scrolling outside
+  useEffect(() => {
+    if (!userMenuOpen && !orgMenuOpen && !notificationsOpen) return;
+
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      // Allow internal scrolling if dropdown content itself is scrolled
+      if (target?.closest?.('.skeuo-raised-3')) {
+        return;
+      }
+      setUserMenuOpen(false);
+      setOrgMenuOpen(false);
+      setNotificationsOpen(false);
+    };
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    window.addEventListener('wheel', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('wheel', handleScroll);
+    };
+  }, [userMenuOpen, orgMenuOpen, notificationsOpen]);
+
   const handleLogout = async () => {
     // store.logout() calls authApi.logout() internally — calling it directly here too
     // caused a double-request: the 2nd hit had no session → 401 → refresh → 422 cascade.

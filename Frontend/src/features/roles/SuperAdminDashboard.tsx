@@ -5,6 +5,7 @@ import { DataTable, ColumnDef } from '@/components/patterns/DataTable';
 import { StatusPill } from '@/components/patterns/StatusPill';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUIStore } from '@/stores/uiStore';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -561,8 +562,8 @@ export function SuperAdminDashboard() {
             if (e.target === e.currentTarget && !isSubmittingTenant) setIsNewTenantOpen(false);
           }}
         >
-          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in zoom-in-95 my-auto">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl w-full max-w-lg sm:w-[512px] max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 my-auto">
+            <div className="p-5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                   <Building2 className="w-4 h-4" />
@@ -581,7 +582,7 @@ export function SuperAdminDashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateTenant} className="space-y-4">
+            <form onSubmit={handleCreateTenant} className="p-6 space-y-4 overflow-y-auto flex-1">
               <Input
                 label="Organization Workspace Name"
                 placeholder="e.g. Apex Global Logistics"
@@ -592,16 +593,16 @@ export function SuperAdminDashboard() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-neutral-700">Plan Tier</label>
-                  <select
+                  <Select
+                    label="Plan Tier"
                     value={newTenantTier}
-                    onChange={(e) => setNewTenantTier(e.target.value as any)}
-                    className="w-full text-xs px-3 py-2 rounded-lg bg-neutral-50 border border-neutral-300 text-neutral-900 focus:bg-white outline-none"
-                  >
-                    <option value="STARTER">Starter Plan</option>
-                    <option value="BUSINESS">Business Plan</option>
-                    <option value="ENTERPRISE">Enterprise Plan</option>
-                  </select>
+                    onChange={(val) => setNewTenantTier(val as any)}
+                    options={[
+                      { value: 'STARTER', label: 'Starter Plan' },
+                      { value: 'BUSINESS', label: 'Business Plan' },
+                      { value: 'ENTERPRISE', label: 'Enterprise Plan' },
+                    ]}
+                  />
                 </div>
 
                 <Input
@@ -652,8 +653,8 @@ export function SuperAdminDashboard() {
             if (e.target === e.currentTarget && !isSubmittingUser) setIsNewUserOpen(false);
           }}
         >
-          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in zoom-in-95 my-auto">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl w-full max-w-lg sm:w-[512px] max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 my-auto">
+            <div className="p-5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                   <UserCheck className="w-4 h-4" />
@@ -672,21 +673,17 @@ export function SuperAdminDashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
+            <form onSubmit={handleCreateUser} className="p-6 space-y-4 overflow-y-auto flex-1 pb-16">
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-neutral-700">Target Tenant Workspace</label>
-                <select
+                <Select
+                  label="Target Tenant Workspace"
                   value={targetOrgId}
-                  onChange={(e) => setTargetOrgId(e.target.value)}
-                  className="w-full text-xs px-3 py-2 rounded-lg bg-neutral-50 border border-neutral-300 text-neutral-900 focus:bg-white outline-none"
-                  required
-                >
-                  {tenants.map((t) => (
-                    <option key={t.id || t.organizationId} value={t.organizationId || t.id}>
-                      {t.name} ({t.organizationId || t.id})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setTargetOrgId(val)}
+                  options={tenants.map((t) => ({
+                    value: t.organizationId || t.id,
+                    label: `${t.name} (${t.organizationId || t.id})`,
+                  }))}
+                />
               </div>
 
               <Input
@@ -707,21 +704,16 @@ export function SuperAdminDashboard() {
               />
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-neutral-700">Role & Permission Matrix</label>
-                <select
+                <Select
+                  label="Role & Permission Matrix"
                   value={newUserRole}
-                  onChange={(e) => setNewUserRole(e.target.value as UserRole)}
-                  className="w-full text-xs px-3 py-2 rounded-lg bg-neutral-50 border border-neutral-300 text-neutral-900 focus:bg-white outline-none cursor-pointer"
-                >
-                  {AVAILABLE_ROLES.map((r) => (
-                    <option key={r.role} value={r.role}>
-                      {r.label} ({r.role})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-neutral-500">
-                  {AVAILABLE_ROLES.find((r) => r.role === newUserRole)?.description}
-                </p>
+                  onChange={(val) => setNewUserRole(val as UserRole)}
+                  options={AVAILABLE_ROLES.map((r) => ({
+                    value: r.role,
+                    label: `${r.label} (${r.role})`,
+                    description: r.description,
+                  }))}
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

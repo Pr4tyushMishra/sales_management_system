@@ -5,6 +5,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import {
   Layers,
   Sparkles,
@@ -20,6 +21,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { authApi } from './api/authApi';
+import { organizationsApi, TenantOrgDto } from '../admin/api/organizationsApi';
 
 interface RoleOption {
   role: UserRole;
@@ -82,9 +84,25 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState('Acme Enterprise Inc.');
+  const [selectedOrg, setSelectedOrg] = useState('org_acme_corp');
+  const [availableOrgs, setAvailableOrgs] = useState<TenantOrgDto[]>([
+    { id: 'org_acme_corp', organizationId: 'org_acme_corp', name: 'Acme Enterprise Inc.', tier: 'ENTERPRISE_PLUS', activeUsers: 6, maxUsers: 50, storageGb: 148, apiCalls24h: 184500, health: 'HEALTHY', slaStatus: 'COMPLIANT' },
+    { id: 'org_apex_global', organizationId: 'org_apex_global', name: 'Apex Capital Logistics', tier: 'ENTERPRISE', activeUsers: 4, maxUsers: 30, storageGb: 89, apiCalls24h: 92300, health: 'HEALTHY', slaStatus: 'COMPLIANT' },
+  ]);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch live active tenant organizations
+  useEffect(() => {
+    organizationsApi.getOrganizations().then((orgs) => {
+      if (Array.isArray(orgs) && orgs.length > 0) {
+        setAvailableOrgs(orgs);
+        if (!selectedOrg) {
+          setSelectedOrg(orgs[0].organizationId || orgs[0].id);
+        }
+      }
+    }).catch(() => {});
+  }, []);
 
   // If already authenticated, redirect forward to user's dashboard and replace login in browser history
   useEffect(() => {
@@ -259,28 +277,20 @@ export function LoginPage() {
               </p>
             </div>
 
-            {/* Role / Portal Selection Dropdown */}
+            {/* Role / Portal Selection Custom Dropdown */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-neutral-700">
-                Select Role / Portal Access
-              </label>
-              <div className="relative">
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                  className="w-full text-xs font-semibold px-3 py-2.5 rounded-lg bg-neutral-50 border border-neutral-300 text-neutral-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all cursor-pointer appearance-none"
-                >
-                  {ROLE_OPTIONS.map((opt) => (
-                    <option key={opt.role} value={opt.role}>
-                      {opt.label} ({opt.badge})
-                    </option>
-                  ))}
-                </select>
-                <UserCheck className="w-4 h-4 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-              <p className="text-[10px] text-neutral-400">
-                {ROLE_OPTIONS.find((r) => r.role === selectedRole)?.description}
-              </p>
+              <Select
+                label="Select Role / Portal Access"
+                value={selectedRole}
+                onChange={(val) => setSelectedRole(val as UserRole)}
+                options={ROLE_OPTIONS.map((opt) => ({
+                  value: opt.role,
+                  label: opt.label,
+                  description: opt.description,
+                  badge: opt.badge,
+                  icon: <UserCheck className="w-3.5 h-3.5 text-neutral-500" />,
+                }))}
+              />
 
               {selectedRole === 'SUPER_ADMIN' && (
                 <div className="p-2.5 rounded-lg bg-violet-50 border border-violet-200 text-xs text-violet-900 flex items-center gap-2 mt-2 animate-in fade-in">
@@ -330,22 +340,19 @@ export function LoginPage() {
                 }
               />
 
+              {/* Tenant Organization Workspace Custom Dropdown */}
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-neutral-700">
-                  Tenant Organization Workspace
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedOrg}
-                    onChange={(e) => setSelectedOrg(e.target.value)}
-                    className="w-full text-xs px-3 py-2.5 rounded-lg bg-neutral-50 border border-neutral-300 text-neutral-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-all cursor-pointer appearance-none"
-                  >
-                    <option value="Acme Enterprise Inc.">Acme Enterprise Inc.</option>
-                    <option value="Apex Capital Global">Apex Capital Global</option>
-                    <option value="ADVMEN Platform Ops">ADVMEN Platform Ops</option>
-                  </select>
-                  <Building2 className="w-4 h-4 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <Select
+                  label="Tenant Organization Workspace"
+                  value={selectedOrg}
+                  onChange={(val) => setSelectedOrg(val)}
+                  options={availableOrgs.map((org) => ({
+                    value: org.organizationId || org.id,
+                    label: org.name,
+                    description: `ID: ${org.organizationId || org.id} • ${org.tier || 'ENTERPRISE'}`,
+                    icon: <Building2 className="w-3.5 h-3.5 text-blue-600" />,
+                  }))}
+                />
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">

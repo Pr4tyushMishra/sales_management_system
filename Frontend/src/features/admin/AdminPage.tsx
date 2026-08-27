@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { KPICard } from '@/components/patterns/KPICard';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Avatar } from '@/components/ui/Avatar';
@@ -289,18 +290,20 @@ export function AdminPage() {
                 />
               </div>
 
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="text-xs px-2.5 py-1.5 rounded-lg border border-neutral-300 bg-white text-neutral-800 focus:outline-none focus:border-blue-500 cursor-pointer"
-              >
-                <option value="ALL">All Roles ({members.length})</option>
-                {AVAILABLE_ROLES.map((r) => (
-                  <option key={r.role} value={r.role}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
+              <div className="w-44 sm:w-52">
+                <Select
+                  value={roleFilter}
+                  onChange={(val) => setRoleFilter(val)}
+                  options={[
+                    { value: 'ALL', label: `All Roles (${members.length})` },
+                    ...AVAILABLE_ROLES.map((r) => ({
+                      value: r.role,
+                      label: r.label,
+                    })),
+                  ]}
+                  buttonClassName="py-1.5 px-2.5"
+                />
+              </div>
 
               <span className="text-[11px] font-semibold text-neutral-600 font-mono bg-white px-2.5 py-1 rounded border border-neutral-200">
                 {filteredMembers.length} Enrolled
@@ -451,7 +454,7 @@ export function AdminPage() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleInviteSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleInviteSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 pb-16">
               <Input
                 label="Full Name"
                 value={newName}
@@ -470,23 +473,16 @@ export function AdminPage() {
               />
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-neutral-700">
-                  Role & Permission Scope
-                </label>
-                <select
+                <Select
+                  label="Role & Permission Scope"
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as UserRole)}
-                  className="w-full text-xs font-medium px-3 py-2.5 rounded-lg bg-neutral-50 border border-neutral-300 text-neutral-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none cursor-pointer"
-                >
-                  {AVAILABLE_ROLES.map((r) => (
-                    <option key={r.role} value={r.role}>
-                      {r.label} ({r.role})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-neutral-500">
-                  {AVAILABLE_ROLES.find((r) => r.role === newRole)?.description}
-                </p>
+                  onChange={(val) => setNewRole(val as UserRole)}
+                  options={AVAILABLE_ROLES.map((r) => ({
+                    value: r.role,
+                    label: r.label,
+                    description: r.description,
+                  }))}
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
