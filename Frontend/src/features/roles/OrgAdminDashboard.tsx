@@ -2,6 +2,7 @@ import { KPICard } from '@/components/patterns/KPICard';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { useSessionStore } from '@/stores/sessionStore';
 import {
   Users,
   DollarSign,
@@ -14,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 
 export function OrgAdminDashboard() {
   const navigate = useNavigate();
+  const { user, organizationName } = useSessionStore();
 
   return (
     <div className="space-y-fib-21">
@@ -25,7 +27,7 @@ export function OrgAdminDashboard() {
               Organization Admin Command Center
             </h1>
             <span className="text-[10px] font-bold px-fib-8 py-0.5 rounded-pill bg-blue-100 text-blue-800 border border-blue-200 font-mono">
-              Acme Enterprise Inc.
+              {organizationName || user.organizationName || 'ADVMEN Workspace'}
             </span>
           </div>
           <p className="text-xs text-neutral-500">
@@ -58,9 +60,9 @@ export function OrgAdminDashboard() {
         <WidgetBoundary name="kpi-org-arr">
           <KPICard
             label="Annual Recurring Revenue (ARR)"
-            value="$1,218,000"
-            delta="+24% YoY"
-            deltaDirection="up"
+            value="$0"
+            delta="Production ready"
+            deltaDirection="flat"
             accent="green"
             icon={<DollarSign className="w-4 h-4" />}
           />
@@ -69,9 +71,8 @@ export function OrgAdminDashboard() {
         <WidgetBoundary name="kpi-active-team">
           <KPICard
             label="Licensed Sales Seats"
-            value="42 / 50"
-            delta="8 Seats Open"
-            deltaDirection="up"
+            value="1 Active"
+            subtext="Available for enrollment"
             accent="blue"
             icon={<Users className="w-4 h-4" />}
           />
@@ -80,10 +81,9 @@ export function OrgAdminDashboard() {
         <WidgetBoundary name="kpi-win-rate-org">
           <KPICard
             label="Company Win Rate"
-            value="68.4%"
-            delta="+5.2%"
-            deltaDirection="up"
-            deltaLabel="vs. target"
+            value="0%"
+            delta="Initial baseline"
+            deltaDirection="flat"
             accent="green"
             icon={<TrendingUp className="w-4 h-4" />}
           />
@@ -92,7 +92,7 @@ export function OrgAdminDashboard() {
         <WidgetBoundary name="kpi-invoices-due">
           <KPICard
             label="Receivables Collected"
-            value="$240,000"
+            value="$0"
             subtext="0 Overdue"
             accent="neutral"
             icon={<CreditCard className="w-4 h-4" />}
@@ -113,12 +113,9 @@ export function OrgAdminDashboard() {
               <div className="p-fib-13 rounded-lg bg-neutral-50 border border-neutral-200 flex items-center justify-between text-xs">
                 <div>
                   <span className="font-bold text-neutral-900 block">Outbound Telecaller Desk</span>
-                  <span className="text-[11px] text-neutral-500">12 Active Callers • 48 Calls Today</span>
+                  <span className="text-[11px] text-neutral-500">Live autodialer queue and call disposition logging</span>
                 </div>
                 <div className="flex items-center gap-fib-8">
-                  <span className="text-[10px] font-bold px-fib-8 py-0.5 rounded-pill bg-green-100 text-green-800 border border-green-200">
-                    SLA Compliant (4.2m)
-                  </span>
                   <Button size="xs" variant="ghost" onClick={() => navigate('/calls')}>
                     View Desk <ArrowRight className="w-3 h-3" />
                   </Button>
@@ -128,12 +125,9 @@ export function OrgAdminDashboard() {
               <div className="p-fib-13 rounded-lg bg-neutral-50 border border-neutral-200 flex items-center justify-between text-xs">
                 <div>
                   <span className="font-bold text-neutral-900 block">Account Executives & Pipeline</span>
-                  <span className="text-[11px] text-neutral-500">18 Reps • $680,000 in Active Deals</span>
+                  <span className="text-[11px] text-neutral-500">Kanban deal pipeline tracking and CPQ proposals</span>
                 </div>
                 <div className="flex items-center gap-fib-8">
-                  <span className="text-[10px] font-bold px-fib-8 py-0.5 rounded-pill bg-green-100 text-green-800 border border-green-200">
-                    116% Quota Pace
-                  </span>
                   <Button size="xs" variant="ghost" onClick={() => navigate('/pipeline')}>
                     View Pipeline <ArrowRight className="w-3 h-3" />
                   </Button>
@@ -142,13 +136,10 @@ export function OrgAdminDashboard() {
 
               <div className="p-fib-13 rounded-lg bg-neutral-50 border border-neutral-200 flex items-center justify-between text-xs">
                 <div>
-                  <span className="font-bold text-neutral-900 block">Inbound SDR Routing & WhatsApp Lead Hub</span>
-                  <span className="text-[11px] text-neutral-500">6 SDRs • Sub-second automated triage</span>
+                  <span className="font-bold text-neutral-900 block">Inbound SDR Routing & Lead Hub</span>
+                  <span className="text-[11px] text-neutral-500">Multi-channel lead qualification and AI auto-scoring</span>
                 </div>
                 <div className="flex items-center gap-fib-8">
-                  <span className="text-[10px] font-bold px-fib-8 py-0.5 rounded-pill bg-blue-100 text-blue-800 border border-blue-200">
-                    AI Auto-Scoring 94%
-                  </span>
                   <Button size="xs" variant="ghost" onClick={() => navigate('/inbox')}>
                     View Inbox <ArrowRight className="w-3 h-3" />
                   </Button>
@@ -168,24 +159,13 @@ export function OrgAdminDashboard() {
             <div className="space-y-fib-8 text-xs">
               <div className="flex items-center justify-between p-fib-8 bg-neutral-50 rounded border border-neutral-200">
                 <div className="flex items-center gap-fib-8">
-                  <Avatar name="Sarah Chen" src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80" size="sm" status="online" />
+                  <Avatar name={user.name} src={user.avatarUrl} size="sm" status="online" />
                   <div>
-                    <span className="font-bold text-neutral-900 block">Sarah Chen</span>
-                    <span className="text-[10px] text-neutral-500">VP Ops (Org Admin)</span>
+                    <span className="font-bold text-neutral-900 block">{user.name}</span>
+                    <span className="text-[10px] text-neutral-500 font-mono">{user.email}</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Owner</span>
-              </div>
-
-              <div className="flex items-center justify-between p-fib-8 bg-neutral-50 rounded border border-neutral-200">
-                <div className="flex items-center gap-fib-8">
-                  <Avatar name="Marcus Vance" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" size="sm" status="online" />
-                  <div>
-                    <span className="font-bold text-neutral-900 block">Marcus Vance</span>
-                    <span className="text-[10px] text-neutral-500">Sales Director</span>
-                  </div>
-                </div>
-                <span className="text-[10px] font-bold text-neutral-600 bg-neutral-100 px-2 py-0.5 rounded">Manager</span>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Active</span>
               </div>
             </div>
           </div>

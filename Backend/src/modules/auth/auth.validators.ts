@@ -23,3 +23,12 @@ export const UpdateProfileSchema = z.object({
   phone: z.string().optional(),
   avatarUrl: z.string().url().optional(),
 });
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email('A valid Super Admin email address is required'),
+});
+
+export const ResetPasswordSchema = z.object({
+  otp: z.string().length(6, 'OTP must be exactly 6 digits').regex(/^\d{6}$/, 'OTP must contain only digits'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+});

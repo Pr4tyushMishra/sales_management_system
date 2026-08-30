@@ -22,13 +22,14 @@ import {
   DollarSign,
   Clock,
   Building2,
+  Trash2,
 } from 'lucide-react';
 
 import { useLeads } from './hooks/useLeads';
 import { useActivities } from './hooks/useActivities';
 
 export function LeadsPage() {
-  const { leads, createLead, updateLead } = useLeads();
+  const { leads, createLead, updateLead, deleteLead } = useLeads();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const { activities } = useActivities(selectedLead?.id);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -42,6 +43,7 @@ export function LeadsPage() {
   const [newLeadEmail, setNewLeadEmail] = useState('');
   const [newLeadPhone, setNewLeadPhone] = useState('');
   const [newLeadValue, setNewLeadValue] = useState('50000');
+  const [newLeadStatus, setNewLeadStatus] = useState<Lead['status']>('NEW');
 
   const filteredLeads = leads.filter((l) => {
     if (statusFilter === 'ALL') return true;
@@ -58,7 +60,7 @@ export function LeadsPage() {
       email: newLeadEmail || `${newLeadName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
       phone: newLeadPhone || '+1 (555) 019-2834',
       budget: Number(newLeadValue) || 50000,
-      status: 'NEW',
+      status: newLeadStatus,
     });
 
     setIsCreateModalOpen(false);
@@ -66,6 +68,18 @@ export function LeadsPage() {
     setNewLeadCompany('');
     setNewLeadEmail('');
     setNewLeadPhone('');
+    setNewLeadStatus('NEW');
+  };
+
+  const handleDeleteLead = async (e: React.MouseEvent, lead: Lead) => {
+    e.stopPropagation();
+    await deleteLead(lead.id);
+    if (selectedLead?.id === lead.id) setSelectedLead(null);
+    addToast({
+      type: 'info',
+      title: 'Lead Deleted',
+      message: `${lead.name} (${lead.company}) has been removed.`,
+    });
   };
 
   const columns: ColumnDef<Lead>[] = [
@@ -150,6 +164,20 @@ export function LeadsPage() {
         </span>
       ),
     },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <button
+          onClick={(e) => handleDeleteLead(e, row)}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-rose-50 text-neutral-300 hover:text-rose-600"
+          title="Delete lead"
+          aria-label="Delete lead"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      ),
+    },
   ];
 
   return (
@@ -202,9 +230,7 @@ export function LeadsPage() {
           <KPICard
             label="Total Active Leads"
             value={leads.length}
-            delta="+18%"
-            deltaDirection="up"
-            deltaLabel="vs. last week"
+            subtext="Tracked prospects"
             accent="blue"
             icon={<Users className="w-4 h-4" />}
           />
@@ -214,9 +240,7 @@ export function LeadsPage() {
           <KPICard
             label="Hot Buying Signals"
             value={leads.filter((l) => l.scoreCategory === 'HOT').length}
-            delta="+25%"
-            deltaDirection="up"
-            deltaLabel="AI qualified"
+            subtext="AI qualified"
             accent="rose"
             icon={<Flame className="w-4 h-4" />}
           />
@@ -226,9 +250,7 @@ export function LeadsPage() {
           <KPICard
             label="Total Pipeline Value"
             value={`$${leads.reduce((s, l) => s + l.estimatedValue, 0).toLocaleString()}`}
-            delta="+$45k"
-            deltaDirection="up"
-            deltaLabel="weighted forecast"
+            subtext="Estimated value"
             accent="green"
             icon={<DollarSign className="w-4 h-4" />}
           />
@@ -236,11 +258,9 @@ export function LeadsPage() {
 
         <WidgetBoundary name="kpi-sla-time">
           <KPICard
-            label="Avg First Touch SLA"
-            value="4.2m"
-            delta="-32%"
-            deltaDirection="up"
-            deltaLabel="faster response"
+            label="Qualified Leads"
+            value={leads.filter((l) => l.status === 'QUALIFIED').length}
+            subtext="Ready for conversion"
             accent="neutral"
             icon={<Clock className="w-4 h-4" />}
           />
@@ -299,7 +319,25 @@ export function LeadsPage() {
       >
         {selectedLead && (
           <div className="space-y-fib-21">
-            <LeadDetailHeader lead={selectedLead} />
+            <div className="flex items-center justify-between">
+              <LeadDetailHeader
+                lead={selectedLead}
+                onStatusChange={async (newStatus) => {
+                  await updateLead({
+                    id: selectedLead.id,
+                    payload: { status: newStatus },
+                  });
+                  setSelectedLead((prev) => (prev ? { ...prev, status: newStatus } : null));
+                }}
+              />
+              <button
+                onClick={(e) => handleDeleteLead(e, selectedLead)}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Lead
+              </button>
+            </div>
 
             {/* AI Assistant Section (Independent WidgetBoundary) */}
             <LeadAISummaryCard
@@ -374,12 +412,27 @@ export function LeadsPage() {
                 />
               </div>
 
-              <Input
-                label="Estimated Deal Value ($)"
-                type="number"
-                value={newLeadValue}
-                onChange={(e) => setNewLeadValue(e.target.value)}
-              />
+              <div className="grid grid-cols-2 gap-fib-13">
+                <Input
+                  label="Estimated Deal Value ($)"
+                  type="number"
+                  value={newLeadValue}
+                  onChange={(e) => setNewLeadValue(e.target.value)}
+                />
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-neutral-700">Initial Status</label>
+                  <select
+                    value={newLeadStatus}
+                    onChange={(e) => setNewLeadStatus(e.target.value as Lead['status'])}
+                    className="w-full skeuo-sunken text-xs font-semibold px-fib-8 py-2.5 rounded-md bg-neutral-100 border border-neutral-300 text-neutral-800 outline-none cursor-pointer"
+                  >
+                    <option value="NEW">New</option>
+                    <option value="QUALIFIED">Qualified</option>
+                    <option value="CONTACTED">Contacted</option>
+                    <option value="NURTURING">Nurturing</option>
+                  </select>
+                </div>
+              </div>
 
               <div className="pt-fib-13 border-t border-neutral-100 flex items-center justify-end gap-fib-8">
                 <Button

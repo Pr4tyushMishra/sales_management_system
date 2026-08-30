@@ -28,9 +28,7 @@ export function TopBar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
-  const [organizations, setOrganizations] = useState<TenantOrgDto[]>([
-    { id: 'org_acme_corp', organizationId: 'org_acme_corp', name: 'Acme Enterprise Inc.', tier: 'ENTERPRISE_PLUS', activeUsers: 6, maxUsers: 50, storageGb: 148, apiCalls24h: 184500, health: 'HEALTHY', slaStatus: 'COMPLIANT' },
-  ]);
+  const [organizations, setOrganizations] = useState<TenantOrgDto[]>([]);
 
   useEffect(() => {
     organizationsApi.getOrganizations().then((orgs) => {

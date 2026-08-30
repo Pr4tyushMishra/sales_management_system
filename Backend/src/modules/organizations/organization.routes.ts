@@ -6,6 +6,10 @@ import { CreateOrganizationSchema } from './organization.validators.js';
 
 export const organizationRouter = Router();
 
+// Public route for unauthenticated workspace selection on login / signup
+organizationRouter.get('/public', organizationController.getPublicOrganizations);
+
+// Authenticated routes
 organizationRouter.use(authMiddleware);
 
 organizationRouter.get('/', organizationController.getOrganizations);
@@ -15,3 +19,5 @@ organizationRouter.post(
   validateRequest({ body: CreateOrganizationSchema }),
   organizationController.createOrganization
 );
+organizationRouter.delete('/:id', organizationController.deleteOrganization);
+

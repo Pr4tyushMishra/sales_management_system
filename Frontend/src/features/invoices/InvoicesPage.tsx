@@ -180,9 +180,7 @@ export function InvoicesPage() {
           <KPICard
             label="Total Revenue Collected"
             value={`$${totalCollected.toLocaleString()}`}
-            delta="+$240k"
-            deltaDirection="up"
-            deltaLabel="settled"
+            subtext="Settled payments"
             accent="green"
             icon={<CheckCircle className="w-4 h-4" />}
           />
@@ -192,9 +190,7 @@ export function InvoicesPage() {
           <KPICard
             label="Outstanding Receivables"
             value={`$${pendingCollection.toLocaleString()}`}
-            delta="due in 30 days"
-            deltaDirection="flat"
-            deltaLabel="projected"
+            subtext="Pending payment"
             accent="blue"
             icon={<CreditCard className="w-4 h-4" />}
           />
@@ -204,21 +200,17 @@ export function InvoicesPage() {
           <KPICard
             label="Overdue Invoices"
             value={invoices.filter((i) => i.status === 'OVERDUE').length}
-            delta="Urgent collection"
-            deltaDirection="down"
-            deltaLabel="action needed"
-            accent="rose"
+            subtext={invoices.filter((i) => i.status === 'OVERDUE').length ? 'Urgent collection required' : 'No overdue invoices'}
+            accent={invoices.filter((i) => i.status === 'OVERDUE').length ? 'rose' : 'green'}
             icon={<AlertCircle className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
         <WidgetBoundary name="kpi-collection-days">
           <KPICard
-            label="DSO (Days Sales Outstanding)"
-            value="18 Days"
-            delta="-4 days"
-            deltaDirection="up"
-            deltaLabel="faster payment"
+            label="Total Invoices"
+            value={invoices.length}
+            subtext="Invoiced to date"
             accent="neutral"
             icon={<Calendar className="w-4 h-4" />}
           />

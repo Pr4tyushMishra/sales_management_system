@@ -1,15 +1,17 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../../config/env.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { ERROR_CODES } from '../../shared/errors/errorCodes.js';
 import { USER_ROLES, UserRole, ROLE_DEFAULT_PERMISSIONS } from '../../config/constants.js';
+import { emailService } from '../../shared/services/email.service.js';
 
 import { normalizeEmail } from '../../shared/utils/normalize.js';
 import { authRepository } from './auth.repository.js';
 import { OrganizationModel } from '../organizations/organization.model.js';
-import { IUser } from './auth.model.js';
+import { IUser, UserModel } from './auth.model.js';
 
 export interface AuthTokens {
   accessToken: string;
@@ -217,6 +219,77 @@ export class AuthService {
     } else {
       await authRepository.clearAllRefreshTokens(userId);
     }
+  }
+
+  /**
+   * Forgot password — SUPER_ADMIN only.
+   * Generates a cryptographically secure 6-digit OTP, stores it hashed with a 10-minute
+   * expiry on the user record, and emails the plain OTP to the Super Admin's address.
+   */
+  async forgotPassword(email: string): Promise<{ message: string; expiresAt: Date }> {
+    const normalizedEmail = normalizeEmail(email);
+    const user = await authRepository.findByNormalizedEmailGlobal(normalizedEmail);
+
+    if (!user) {
+      throw AppError.unauthorized('No Super Admin account found with this email address.');
+    }
+
+    if (user.role !== USER_ROLES.SUPER_ADMIN) {
+      throw AppError.forbidden('Password reset is only available for Super Admin accounts.');
+    }
+
+    if (!user.isActive) {
+      throw AppError.forbidden('This account is deactivated.');
+    }
+
+    // Generate a 6-digit numeric OTP using crypto (cryptographically secure)
+    const otp = String(crypto.randomInt(100000, 999999));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store HASHED otp — never persist plain text
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+    await UserModel.updateOne(
+      { _id: user._id },
+      { $set: { passwordResetToken: hashedOtp, passwordResetExpiresAt: expiresAt } }
+    );
+
+    // Send the OTP to the Super Admin's email
+    await emailService.sendPasswordResetOtp(user.email, otp, user.name);
+
+    return {
+      message: `A 6-digit verification code has been sent to ${user.email}. It expires in 10 minutes.`,
+      expiresAt,
+    };
+  }
+
+  /**
+   * Reset password using the OTP sent to the Super Admin's email.
+   * SUPER_ADMIN only.
+   */
+  async resetPassword(otp: string, newPassword: string): Promise<void> {
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+
+    const user = await UserModel.findOne({
+      passwordResetToken: hashedOtp,
+      passwordResetExpiresAt: { $gt: new Date() },
+    }).select('+passwordHash +passwordResetToken +passwordResetExpiresAt');
+
+    if (!user) {
+      throw AppError.unauthorized('The OTP is incorrect or has expired. Please request a new one.');
+    }
+
+    if (user.role !== USER_ROLES.SUPER_ADMIN) {
+      throw AppError.forbidden('Password reset is only available for Super Admin accounts.');
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    (user as any).passwordResetToken = undefined;
+    (user as any).passwordResetExpiresAt = undefined;
+    await user.save();
+
+    // Invalidate all existing sessions for full security
+    await authRepository.clearAllRefreshTokens(user._id.toString());
   }
 }
 

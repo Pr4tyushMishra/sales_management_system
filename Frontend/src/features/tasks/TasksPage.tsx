@@ -15,12 +15,13 @@ import {
   Calendar,
   User,
   Building,
+  Trash2,
 } from 'lucide-react';
 
 import { useTasks } from './hooks/useTasks';
 
 export function TasksPage() {
-  const { tasks, createTask, toggleTask } = useTasks();
+  const { tasks, createTask, toggleTask, deleteTask } = useTasks();
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<Task['priority']>('HIGH');
@@ -35,6 +36,16 @@ export function TasksPage() {
       type: nextState ? 'success' : 'info',
       title: nextState ? 'Task Marked Done' : 'Task Reopened',
       message: task.title,
+    });
+  };
+
+  const handleDeleteTask = async (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
+    await deleteTask(taskId);
+    addToast({
+      type: 'info',
+      title: 'Task Deleted',
+      message: 'The task has been removed.',
     });
   };
 
@@ -58,6 +69,8 @@ export function TasksPage() {
     MEDIUM: 'bg-blue-100 text-blue-800 border-blue-200',
     LOW: 'bg-neutral-100 text-neutral-700 border-neutral-200',
   };
+
+  const urgentTasks = tasks.filter((t) => !t.isCompleted && (t.priority === 'URGENT' || t.slaBreachInMinutes));
 
   return (
     <div className="space-y-fib-21">
@@ -97,22 +110,18 @@ export function TasksPage() {
         <WidgetBoundary name="kpi-sla-breach-risk">
           <KPICard
             label="SLA Breach Risk (<1h)"
-            value="1"
-            delta="Critical"
-            deltaDirection="down"
-            deltaLabel="Action required"
-            accent="rose"
+            value={urgentTasks.length}
+            subtext={urgentTasks.length ? 'Critical attention needed' : 'All SLAs healthy'}
+            accent={urgentTasks.length ? 'rose' : 'green'}
             icon={<AlertTriangle className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
         <WidgetBoundary name="kpi-completed-tasks">
           <KPICard
-            label="Completed Today"
+            label="Completed Tasks"
             value={tasks.filter((t) => t.isCompleted).length}
-            delta="+3"
-            deltaDirection="up"
-            deltaLabel="on track"
+            subtext="Execution progress"
             accent="green"
             icon={<CheckCircle2 className="w-4 h-4" />}
           />
@@ -121,8 +130,8 @@ export function TasksPage() {
         <WidgetBoundary name="kpi-upcoming-meetings">
           <KPICard
             label="Scheduled Meetings"
-            value="3"
-            subtext="Next at 2:00 PM"
+            value={tasks.filter((t) => !t.isCompleted && t.priority === 'HIGH').length}
+            subtext="Priority appointments"
             accent="neutral"
             icon={<Calendar className="w-4 h-4" />}
           />
@@ -137,68 +146,87 @@ export function TasksPage() {
             <span>Priority & SLA Status</span>
           </div>
 
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              onClick={() => handleToggleTask(task.id)}
-              className={cn(
-                'p-fib-13 flex items-start justify-between gap-fib-13 cursor-pointer hover:bg-neutral-50 transition-colors select-none',
-                task.isCompleted && 'opacity-60 bg-neutral-50/50'
-              )}
-            >
-              <div className="flex items-start gap-fib-8">
-                <input
-                  type="checkbox"
-                  checked={task.isCompleted}
-                  onChange={() => {}}
-                  className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <div>
-                  <h4
-                    className={cn(
-                      'text-xs font-bold text-neutral-900',
-                      task.isCompleted && 'line-through text-neutral-500'
-                    )}
-                  >
-                    {task.title}
-                  </h4>
-                  <div className="flex items-center gap-fib-8 text-[11px] text-neutral-500 mt-1">
-                    <span className="flex items-center gap-1 font-medium text-neutral-700">
-                      <Building className="w-3 h-3 text-neutral-400" />
-                      {task.relatedTo.name}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-neutral-400" />
-                      {task.dueDate}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <User className="w-3 h-3 text-neutral-400" />
-                      {task.assignedToName}
-                    </span>
+          {tasks.length === 0 ? (
+            <div className="p-12 text-center text-xs text-neutral-500">
+              <CheckSquare className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
+              <span>No active tasks or SLA alerts in workspace. Click 'Create Task' to schedule actions.</span>
+            </div>
+          ) : (
+            tasks.map((task) => (
+              <div
+                key={task.id}
+                onClick={() => handleToggleTask(task.id)}
+                className={cn(
+                  'group p-fib-13 flex items-start justify-between gap-fib-13 cursor-pointer hover:bg-neutral-50 transition-colors select-none',
+                  task.isCompleted && 'opacity-60 bg-neutral-50/50'
+                )}
+              >
+                <div className="flex items-start gap-fib-8">
+                  <input
+                    type="checkbox"
+                    checked={task.isCompleted}
+                    onChange={() => {}}
+                    className="mt-0.5 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <div>
+                    <h4
+                      className={cn(
+                        'text-xs font-bold text-neutral-900',
+                        task.isCompleted && 'line-through text-neutral-500'
+                      )}
+                    >
+                      {task.title}
+                    </h4>
+                    <div className="flex items-center gap-fib-8 text-[11px] text-neutral-500 mt-1">
+                      {task.relatedTo?.name && (
+                        <span className="flex items-center gap-1 font-medium text-neutral-700">
+                          <Building className="w-3 h-3 text-neutral-400" />
+                          {task.relatedTo.name}
+                        </span>
+                      )}
+                      {task.dueDate && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-neutral-400" />
+                          {task.dueDate}
+                        </span>
+                      )}
+                      {task.assignedToName && (
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3 text-neutral-400" />
+                          {task.assignedToName}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-fib-8 shrink-0">
-                {task.slaBreachInMinutes && !task.isCompleted && (
-                  <span className="text-[10px] font-bold px-fib-5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 animate-pulse">
-                    <AlertTriangle className="w-3 h-3 text-rose-600" />
-                    SLA risk: {task.slaBreachInMinutes}m left
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    'text-[10px] font-bold px-fib-5 py-0.5 rounded-pill border uppercase tracking-wider',
-                    priorityColors[task.priority]
+                <div className="flex items-center gap-fib-8 shrink-0">
+                  {task.slaBreachInMinutes && !task.isCompleted && (
+                    <span className="text-[10px] font-bold px-fib-5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 animate-pulse">
+                      <AlertTriangle className="w-3 h-3 text-rose-600" />
+                      SLA risk: {task.slaBreachInMinutes}m left
+                    </span>
                   )}
-                >
-                  {task.priority}
-                </span>
+                  <span
+                    className={cn(
+                      'text-[10px] font-bold px-fib-5 py-0.5 rounded-pill border uppercase tracking-wider',
+                      priorityColors[task.priority] || priorityColors.MEDIUM
+                    )}
+                  >
+                    {task.priority}
+                  </span>
+                  <button
+                    onClick={(e) => handleDeleteTask(e, task.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-rose-50 text-neutral-400 hover:text-rose-600"
+                    title="Delete task"
+                    aria-label="Delete task"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </WidgetBoundary>
 

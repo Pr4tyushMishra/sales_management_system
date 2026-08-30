@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { useCalls } from '../calls/hooks/useCalls';
 import { CallRecord, CallDisposition } from '@/types';
 import { useUIStore } from '@/stores/uiStore';
+import { useSessionStore } from '@/stores/sessionStore';
 import {
   PhoneCall,
   PhoneForwarded,
@@ -18,6 +19,7 @@ import {
 
 export function TelecallerDashboard() {
   const { addToast } = useUIStore();
+  const { user } = useSessionStore();
   const { calls, logCall } = useCalls();
 
   const [activeCall, setActiveCall] = useState<CallRecord | null>(null);
@@ -76,6 +78,13 @@ export function TelecallerDashboard() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const completedCalls = calls.filter((c) => c.status === 'COMPLETED');
+  const meetingsBooked = calls.filter((c) => c.disposition === 'MEETING_BOOKED').length;
+  const connectRate = calls.length ? Math.round((completedCalls.length / calls.length) * 100) : 0;
+  const avgSeconds = completedCalls.length
+    ? Math.round(completedCalls.reduce((s, c) => s + (c.durationSeconds || 0), 0) / completedCalls.length)
+    : 0;
+
   return (
     <div className="space-y-fib-21">
       {/* Header */}
@@ -83,7 +92,7 @@ export function TelecallerDashboard() {
         <div>
           <div className="flex items-center gap-fib-8 mb-1">
             <h1 className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
-              Elena's High-Velocity Telecaller Console
+              {user.name || 'Telecaller'}'s High-Velocity Telecaller Console
             </h1>
             <span className="text-[10px] font-bold px-fib-8 py-0.5 rounded-pill bg-rose-100 text-rose-800 border border-rose-300 font-mono">
               Speed Queue
@@ -102,7 +111,7 @@ export function TelecallerDashboard() {
             onClick={() => {
               const queued = calls.find((c) => c.status === 'QUEUED');
               if (queued) handleStartCall(queued);
-              else addToast({ type: 'info', title: 'Queue Complete', message: 'All scheduled outbound calls done!' });
+              else addToast({ type: 'info', title: 'Queue Complete', message: 'No queued outbound calls at this time.' });
             }}
           >
             Start Speed Dial
@@ -115,9 +124,8 @@ export function TelecallerDashboard() {
         <WidgetBoundary name="kpi-tele-completed">
           <KPICard
             label="Calls Completed Today"
-            value="48 / 60"
-            delta="80% Goal"
-            deltaDirection="up"
+            value={`${completedCalls.length} / ${calls.length || 0}`}
+            subtext="Outreach queue"
             accent="blue"
             icon={<PhoneCall className="w-4 h-4" />}
           />
@@ -126,9 +134,8 @@ export function TelecallerDashboard() {
         <WidgetBoundary name="kpi-tele-connect-rate">
           <KPICard
             label="Live Connect Rate"
-            value="64.2%"
-            delta="+8.1%"
-            deltaDirection="up"
+            value={`${connectRate}%`}
+            subtext="Outreach success"
             accent="green"
             icon={<TrendingUp className="w-4 h-4" />}
           />
@@ -137,9 +144,8 @@ export function TelecallerDashboard() {
         <WidgetBoundary name="kpi-tele-meetings">
           <KPICard
             label="Meetings Booked"
-            value="6 Today"
-            delta="+2 vs quota"
-            deltaDirection="up"
+            value={`${meetingsBooked} Booked`}
+            subtext="Demo pipeline"
             accent="green"
             icon={<CheckCircle className="w-4 h-4" />}
           />
@@ -148,8 +154,8 @@ export function TelecallerDashboard() {
         <WidgetBoundary name="kpi-tele-avg-talk">
           <KPICard
             label="Avg Talk Duration"
-            value="4m 12s"
-            subtext="Optimal discovery time"
+            value={formatSeconds(avgSeconds)}
+            subtext="Discovery talk time"
             accent="neutral"
             icon={<Clock className="w-4 h-4" />}
           />
@@ -203,7 +209,7 @@ export function TelecallerDashboard() {
               Suggested Discovery Pitch Script:
             </span>
             <p className="text-neutral-200">
-              "Hi Chloe, I noticed you recently reviewed our revenue automation specs. Are you looking to integrate autodialer routing for your incoming prospects this quarter?"
+              "Hi {activeCall.leadName}, I noticed your interest in our revenue automation platform. Are you looking to streamline outreach and pipeline workflows this quarter?"
             </p>
           </div>
 
@@ -246,7 +252,9 @@ export function TelecallerDashboard() {
           </div>
           <h3 className="text-sm font-bold text-neutral-900">Autodialer Ready</h3>
           <p className="text-xs text-neutral-500 max-w-sm">
-            Click 'Start Speed Dial' to automatically connect to the next queued prospect with sub-second latency.
+            {calls.length === 0
+              ? 'No outbound call queue active. New prospect leads will appear here for 1-click autodialing.'
+              : 'Click "Start Speed Dial" to automatically connect to the next queued prospect with sub-second latency.'}
           </p>
         </div>
       )}

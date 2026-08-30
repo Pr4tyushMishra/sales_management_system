@@ -119,10 +119,9 @@ export function FinanceViewerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-fib-13">
         <WidgetBoundary name="kpi-fin-collected">
           <KPICard
-            label="Total Collected (Q3)"
-            value="$240,000"
-            delta="100% Settled"
-            deltaDirection="up"
+            label="Total Collected"
+            value={`$${invoices.filter((i) => i.status === 'PAID').reduce((s, i) => s + i.amount, 0).toLocaleString()}`}
+            subtext="Settled payments"
             accent="green"
             icon={<CheckCircle className="w-4 h-4" />}
           />
@@ -130,10 +129,9 @@ export function FinanceViewerDashboard() {
 
         <WidgetBoundary name="kpi-fin-receivables">
           <KPICard
-            label="Outstanding AR"
-            value="$48,500"
-            delta="2 Accounts"
-            deltaDirection="flat"
+            label="Outstanding Receivables"
+            value={`$${invoices.filter((i) => i.status === 'SENT' || i.status === 'OVERDUE').reduce((s, i) => s + i.amount, 0).toLocaleString()}`}
+            subtext={`${invoices.filter((i) => i.status === 'SENT' || i.status === 'OVERDUE').length} Accounts`}
             accent="blue"
             icon={<DollarSign className="w-4 h-4" />}
           />
@@ -141,10 +139,9 @@ export function FinanceViewerDashboard() {
 
         <WidgetBoundary name="kpi-fin-dso">
           <KPICard
-            label="Days Sales Outstanding (DSO)"
-            value="18 Days"
-            delta="-4 days YoY"
-            deltaDirection="up"
+            label="Total Ledger Records"
+            value={invoices.length}
+            subtext="Invoiced contracts"
             accent="green"
             icon={<Calendar className="w-4 h-4" />}
           />

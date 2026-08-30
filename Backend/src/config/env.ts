@@ -26,7 +26,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().default('1000').transform((val) => parseInt(val, 10)),
 
   OPENROUTER_API_KEY: z.string().optional().default(''),
-  OPENROUTER_MODEL: z.string().default('openai/gpt-oss-20b:free'),
+  OPENROUTER_MODEL: z.string().default('nvidia/nemotron-3-super-120b-a12b:free'),
 
 
   GEMINI_API_KEY: z.string().optional().default(''),
@@ -38,6 +38,14 @@ const envSchema = z.object({
   AWS_ACCESS_KEY_ID: z.string().optional().default(''),
   AWS_SECRET_ACCESS_KEY: z.string().optional().default(''),
   AWS_S3_BUCKET_NAME: z.string().default('advmen-salesos-assets'),
+
+  // SMTP Email (nodemailer) — configure with Gmail App Password or any SMTP provider
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_PORT: z.string().default('587').transform((v) => parseInt(v, 10)),
+  SMTP_SECURE: z.string().default('false').transform((v) => v === 'true'),
+  SMTP_USER: z.string().optional().default(''),
+  SMTP_PASS: z.string().optional().default(''),
+  EMAIL_FROM: z.string().default('ADVMEN SalesOS <noreply@advmen.io>'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

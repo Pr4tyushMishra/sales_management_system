@@ -1,7 +1,8 @@
 import { KPICard } from '@/components/patterns/KPICard';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Button } from '@/components/ui/Button';
-import { Avatar } from '@/components/ui/Avatar';
+import { useDeals } from '../deals/hooks/useDeals';
+import { useProposals } from '../proposals/hooks/useProposals';
 import { useUIStore } from '@/stores/uiStore';
 import {
   Kanban,
@@ -10,12 +11,18 @@ import {
   DollarSign,
   Target,
   CheckCircle,
+  FileText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function SalesManagerDashboard() {
   const navigate = useNavigate();
   const { addToast } = useUIStore();
+  const { deals } = useDeals();
+  const { proposals, updateStatus } = useProposals();
+
+  const totalForecast = deals.reduce((sum, d) => sum + (d.value || 0), 0);
+  const pendingApprovals = proposals.filter((p) => p.status === 'DRAFT' || p.status === 'SENT');
 
   return (
     <div className="space-y-fib-21">
@@ -59,10 +66,9 @@ export function SalesManagerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-fib-13">
         <WidgetBoundary name="kpi-team-forecast">
           <KPICard
-            label="Weighted Q3 Forecast"
-            value="$680,000"
-            delta="+18% vs quota"
-            deltaDirection="up"
+            label="Weighted Pipeline Forecast"
+            value={`$${totalForecast.toLocaleString()}`}
+            subtext={`${deals.length} Active Deals`}
             accent="green"
             icon={<DollarSign className="w-4 h-4" />}
           />
@@ -70,10 +76,9 @@ export function SalesManagerDashboard() {
 
         <WidgetBoundary name="kpi-manager-at-risk">
           <KPICard
-            label="At-Risk Deals Requiring Touch"
-            value="1 Deal"
-            delta="BlueHarbor Medical ($195k)"
-            deltaDirection="down"
+            label="At-Risk Deals"
+            value={`${deals.filter((d) => d.stage === 'LOST').length} Deals`}
+            subtext="Requiring escalation"
             accent="rose"
             icon={<AlertTriangle className="w-4 h-4" />}
           />
@@ -81,10 +86,9 @@ export function SalesManagerDashboard() {
 
         <WidgetBoundary name="kpi-team-quota">
           <KPICard
-            label="Team Quota Attainment"
-            value="108.4%"
-            delta="On track for $1.5M"
-            deltaDirection="up"
+            label="Won Revenue"
+            value={`$${deals.filter((d) => d.stage === 'WON').reduce((s, d) => s + (d.value || 0), 0).toLocaleString()}`}
+            subtext="Closed contracts"
             accent="blue"
             icon={<Award className="w-4 h-4" />}
           />
@@ -92,8 +96,8 @@ export function SalesManagerDashboard() {
 
         <WidgetBoundary name="kpi-approval-queue">
           <KPICard
-            label="Pending Discount Approvals"
-            value="2 Proposals"
+            label="Pending Proposal Approvals"
+            value={`${pendingApprovals.length} Proposals`}
             subtext="Ready for sign-off"
             accent="amber"
             icon={<CheckCircle className="w-4 h-4" />}
@@ -110,49 +114,50 @@ export function SalesManagerDashboard() {
               High-Value Proposals Awaiting Manager Sign-Off
             </h3>
 
-            <div className="space-y-fib-8">
-              <div className="p-fib-13 rounded-lg bg-amber-50/60 border border-amber-200 flex items-center justify-between text-xs">
-                <div>
-                  <div className="flex items-center gap-fib-8">
-                    <span className="font-bold text-neutral-900">Apex Capital Logistics ($120,000)</span>
-                    <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.2 rounded font-bold">15% Volume Discount</span>
-                  </div>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Submitted by Devon Patel • Valid until Sept 30</p>
-                </div>
-                <div className="flex items-center gap-fib-8">
-                  <Button
-                    size="xs"
-                    variant="success"
-                    onClick={() => {
-                      addToast({ type: 'success', title: 'Proposal Approved', message: 'Sent to Apex Capital Logistics.' });
-                    }}
-                  >
-                    Approve
-                  </Button>
-                </div>
+            {pendingApprovals.length === 0 ? (
+              <div className="p-8 text-center text-xs text-neutral-500">
+                No proposals pending approval. Newly generated quotes and proposals will appear here for manager sign-off.
               </div>
-
-              <div className="p-fib-13 rounded-lg bg-neutral-50 border border-neutral-200 flex items-center justify-between text-xs">
-                <div>
-                  <div className="flex items-center gap-fib-8">
-                    <span className="font-bold text-neutral-900">FinVerve Technologies ($85,000)</span>
-                    <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.2 rounded font-bold">Standard Tier</span>
-                  </div>
-                  <p className="text-[11px] text-neutral-500 mt-0.5">Submitted by Devon Patel • Telecaller Autodialer addon</p>
-                </div>
-                <div className="flex items-center gap-fib-8">
-                  <Button
-                    size="xs"
-                    variant="success"
-                    onClick={() => {
-                      addToast({ type: 'success', title: 'Proposal Approved', message: 'Sent to FinVerve Technologies.' });
-                    }}
+            ) : (
+              <div className="space-y-fib-8">
+                {pendingApprovals.map((prop) => (
+                  <div
+                    key={prop.id}
+                    className="p-fib-13 rounded-lg bg-neutral-50 border border-neutral-200 flex items-center justify-between text-xs"
                   >
-                    Approve
-                  </Button>
-                </div>
+                    <div>
+                      <div className="flex items-center gap-fib-8">
+                        <span className="font-bold text-neutral-900">
+                          {prop.dealTitle || prop.company} (${prop.amount.toLocaleString()})
+                        </span>
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.2 rounded font-bold font-mono">
+                          {prop.status}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">
+                        Client: {prop.company} • Recipient: {prop.recipientName}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-fib-8">
+                      <Button
+                        size="xs"
+                        variant="success"
+                        onClick={async () => {
+                          await updateStatus({ id: prop.id, status: 'ACCEPTED' });
+                          addToast({
+                            type: 'success',
+                            title: 'Proposal Approved',
+                            message: `Approved proposal for ${prop.company}.`,
+                          });
+                        }}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -160,33 +165,15 @@ export function SalesManagerDashboard() {
         <div className="lg:col-span-4 space-y-fib-13">
           <div className="skeuo-raised-2 bg-white rounded-md border border-neutral-200 p-fib-21 space-y-fib-13">
             <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
-              AE Attainment Pace
+              Active Pipeline Distribution
             </h3>
 
             <div className="space-y-fib-8 text-xs">
-              <div className="flex items-center justify-between p-fib-8 bg-neutral-50 rounded border border-neutral-200">
-                <div className="flex items-center gap-fib-8">
-                  <Avatar name="Devon Patel" size="sm" status="online" />
-                  <div>
-                    <span className="font-bold text-neutral-900 block">Devon Patel</span>
-                    <span className="text-[10px] text-neutral-500">$640k attained</span>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
-                  116%
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-fib-8 bg-neutral-50 rounded border border-neutral-200">
-                <div className="flex items-center gap-fib-8">
-                  <Avatar name="Elena Rostova" size="sm" status="online" />
-                  <div>
-                    <span className="font-bold text-neutral-900 block">Elena Rostova</span>
-                    <span className="text-[10px] text-neutral-500">$295k attained</span>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded border border-neutral-200">
-                  98%
+              <div className="p-fib-13 bg-neutral-50 rounded border border-neutral-200 text-center space-y-1">
+                <FileText className="w-6 h-6 text-neutral-400 mx-auto" />
+                <span className="font-bold text-neutral-900 block">{deals.length} Active Deals</span>
+                <span className="text-[10px] text-neutral-500">
+                  Total Value: ${totalForecast.toLocaleString()}
                 </span>
               </div>
             </div>

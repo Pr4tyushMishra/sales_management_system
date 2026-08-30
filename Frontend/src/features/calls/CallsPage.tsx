@@ -216,10 +216,8 @@ export function CallsPage() {
         <WidgetBoundary name="kpi-calls-completed">
           <KPICard
             label="Calls Completed Today"
-            value="48"
-            delta="+14%"
-            deltaDirection="up"
-            deltaLabel="vs. yesterday"
+            value={calls.filter((c) => c.status === 'COMPLETED').length}
+            subtext={`${calls.length} Total Logs`}
             accent="blue"
             icon={<PhoneCall className="w-4 h-4" />}
           />
@@ -228,10 +226,17 @@ export function CallsPage() {
         <WidgetBoundary name="kpi-avg-talk-time">
           <KPICard
             label="Avg Talk Time"
-            value="5m 32s"
-            delta="+45s"
-            deltaDirection="up"
-            deltaLabel="higher engagement"
+            value={formatSeconds(
+              calls.filter((c) => c.status === 'COMPLETED').length
+                ? Math.round(
+                    calls
+                      .filter((c) => c.status === 'COMPLETED')
+                      .reduce((s, c) => s + (c.durationSeconds || 0), 0) /
+                      calls.filter((c) => c.status === 'COMPLETED').length
+                  )
+                : 0
+            )}
+            subtext="Discovery talk duration"
             accent="green"
             icon={<Clock className="w-4 h-4" />}
           />
@@ -240,10 +245,16 @@ export function CallsPage() {
         <WidgetBoundary name="kpi-positive-sentiment">
           <KPICard
             label="Positive Sentiment Rate"
-            value="78%"
-            delta="+6%"
-            deltaDirection="up"
-            deltaLabel="AI verified"
+            value={
+              calls.filter((c) => c.status === 'COMPLETED').length
+                ? `${Math.round(
+                    (calls.filter((c) => c.status === 'COMPLETED' && c.aiSentiment === 'POSITIVE').length /
+                      calls.filter((c) => c.status === 'COMPLETED').length) *
+                      100
+                  )}%`
+                : '0%'
+            }
+            subtext="AI verified sentiment"
             accent="green"
             icon={<Sparkles className="w-4 h-4" />}
           />

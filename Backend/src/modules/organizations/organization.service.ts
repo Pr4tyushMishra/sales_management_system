@@ -1,12 +1,41 @@
 import { v4 as uuidv4 } from 'uuid';
 import { OrganizationModel, IOrganization } from './organization.model.js';
 import { UserModel } from '../auth/auth.model.js';
+import { LeadModel } from '../leads/lead.model.js';
+import { DealModel } from '../deals/deal.model.js';
+import { TaskModel } from '../tasks/task.model.js';
+import { AutomationModel } from '../automations/automation.model.js';
+import { ProposalModel } from '../proposals/proposal.model.js';
+import { InvoiceModel } from '../invoices-payments/invoice.model.js';
+import { CallModel } from '../calls/call.model.js';
+import { ActivityModel } from '../activities/activity.model.js';
 import { CreateOrganizationInput } from './organization.validators.js';
 import { AuthenticatedUser } from '../../middleware/auth.middleware.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { USER_ROLES } from '../../config/constants.js';
+import { logger } from '../../shared/logger/logger.js';
 
 export class OrganizationService {
+  /**
+   * Public directory of active tenant organizations for workspace selection
+   */
+  async getPublicOrganizations(): Promise<any[]> {
+    const orgs = await OrganizationModel.find({ planStatus: { $ne: 'CANCELLED' } }).sort({ createdAt: -1 });
+
+    return orgs.map((org) => ({
+      id: org.organizationId,
+      organizationId: org.organizationId,
+      name: org.name,
+      slug: org.slug,
+      planTier: org.planTier,
+      tier: org.planTier === 'ENTERPRISE' ? 'ENTERPRISE_PLUS' : org.planTier === 'BUSINESS' ? 'ENTERPRISE' : 'PRO',
+      planStatus: org.planStatus,
+      health: 'HEALTHY',
+      slaStatus: 'COMPLIANT',
+      createdAt: org.createdAt,
+    }));
+  }
+
   async getOrganizations(requester: AuthenticatedUser): Promise<any[]> {
     const isSuperAdmin = requester.role === USER_ROLES.SUPER_ADMIN;
 
@@ -110,6 +139,64 @@ export class OrganizationService {
       health: 'HEALTHY',
       slaStatus: 'COMPLIANT',
       createdAt: newOrg.createdAt,
+    };
+  }
+
+  async deleteOrganization(requester: AuthenticatedUser, organizationId: string): Promise<any> {
+    const isSuperAdmin = requester.role === USER_ROLES.SUPER_ADMIN;
+    if (!isSuperAdmin) {
+      throw AppError.forbidden('Only Super Administrators can delete Tenant Workspaces.');
+    }
+
+    if (organizationId === 'org_advmen_platform') {
+      throw AppError.badRequest('The root platform operations workspace (org_advmen_platform) cannot be deleted.');
+    }
+
+    const org = await OrganizationModel.findOne({
+      $or: [{ organizationId }, { _id: organizationId.match(/^[0-9a-fA-F]{24}$/) ? organizationId : undefined }].filter(Boolean),
+    });
+
+    if (!org) {
+      throw AppError.notFound(`Organization workspace '${organizationId}' not found.`);
+    }
+
+    const targetOrgId = org.organizationId;
+
+    // 1. Delete Organization document
+    await OrganizationModel.deleteOne({ organizationId: targetOrgId });
+
+    // 2. Cascade delete tenant-scoped records
+    const [usersRes, leadsRes, dealsRes, tasksRes, autoRes, propRes, invRes, callRes, actRes] = await Promise.all([
+      UserModel.deleteMany({ organizationId: targetOrgId }),
+      LeadModel.deleteMany({ organizationId: targetOrgId }),
+      DealModel.deleteMany({ organizationId: targetOrgId }),
+      TaskModel.deleteMany({ organizationId: targetOrgId }),
+      AutomationModel.deleteMany({ organizationId: targetOrgId }),
+      ProposalModel.deleteMany({ organizationId: targetOrgId }),
+      InvoiceModel.deleteMany({ organizationId: targetOrgId }),
+      CallModel.deleteMany({ organizationId: targetOrgId }),
+      ActivityModel.deleteMany({ organizationId: targetOrgId }),
+    ]);
+
+    logger.info(
+      `🗑️ Tenant Organization deleted: ${org.name} (${targetOrgId}) by Super Admin ${requester.email}. Cleaned: ${usersRes.deletedCount} users, ${leadsRes.deletedCount} leads, ${dealsRes.deletedCount} deals.`
+    );
+
+    return {
+      deleted: true,
+      organizationId: targetOrgId,
+      name: org.name,
+      recordsCleaned: {
+        users: usersRes.deletedCount,
+        leads: leadsRes.deletedCount,
+        deals: dealsRes.deletedCount,
+        tasks: tasksRes.deletedCount,
+        automations: autoRes.deletedCount,
+        proposals: propRes.deletedCount,
+        invoices: invRes.deletedCount,
+        calls: callRes.deletedCount,
+        activities: actRes.deletedCount,
+      },
     };
   }
 }

@@ -27,6 +27,24 @@ export function useTasks() {
     },
   });
 
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id: string) => taskApi.deleteTask(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] });
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
+      queryClient.setQueryData<Task[]>(['tasks'], (old = []) => old.filter((t) => t.id !== id));
+      return { previousTasks };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+
   const toggleTaskMutation = useMutation({
     mutationFn: ({ id, isCompleted }: { id: string; isCompleted: boolean }) =>
       taskApi.updateTask(id, { isCompleted, status: isCompleted ? 'COMPLETED' : 'PENDING' }),
@@ -55,5 +73,6 @@ export function useTasks() {
     createTask: createTaskMutation.mutateAsync,
     toggleTask: (id: string, isCompleted: boolean) =>
       toggleTaskMutation.mutateAsync({ id, isCompleted }),
+    deleteTask: deleteTaskMutation.mutateAsync,
   };
 }

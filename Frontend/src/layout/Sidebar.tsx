@@ -22,6 +22,10 @@ import {
 } from 'lucide-react';
 import { ROLE_DASHBOARDS } from '@/stores/sessionStore';
 
+import { useLeads } from '@/features/leads/hooks/useLeads';
+import { useCalls } from '@/features/calls/hooks/useCalls';
+import { useTasks } from '@/features/tasks/hooks/useTasks';
+
 interface NavItem {
   label: string;
   path: string;
@@ -34,6 +38,9 @@ export function Sidebar() {
   const { user } = useSessionStore();
   const { sidebarCollapsed, toggleSidebar, mobileSidebarOpen, setMobileSidebarOpen } = useUIStore();
   const location = useLocation();
+  const { leads = [] } = useLeads();
+  const { calls = [] } = useCalls();
+  const { tasks = [] } = useTasks();
 
   // Prevent background scrolling on mobile when sidebar drawer is open
   useEffect(() => {
@@ -52,13 +59,34 @@ export function Sidebar() {
 
   const userRoleDashboardPath = ROLE_DASHBOARDS[user.role] || '/leads';
 
+  const queuedCallsCount = calls.filter((c) => c.status === 'QUEUED').length;
+  const pendingTasksCount = tasks.filter((t) => !t.isCompleted).length;
+
   const navigationItems: NavItem[] = [
-    { label: `${user.role.replace('_', ' ')} Hub`, path: userRoleDashboardPath, icon: <LayoutDashboard className="w-4 h-4" />, badge: 'Role' },
-    { label: 'Leads & Prospects', path: '/leads', icon: <Users className="w-4 h-4" />, permission: 'lead.view', badge: '5' },
+    { label: `${user.role.replace('_', ' ')} Hub`, path: userRoleDashboardPath, icon: <LayoutDashboard className="w-4 h-4" /> },
+    {
+      label: 'Leads & Prospects',
+      path: '/leads',
+      icon: <Users className="w-4 h-4" />,
+      permission: 'lead.view',
+      badge: leads.length > 0 ? String(leads.length) : undefined,
+    },
     { label: 'Deals & Pipeline', path: '/pipeline', icon: <Kanban className="w-4 h-4" />, permission: 'deal.view' },
-    { label: 'Telecaller Queue', path: '/calls', icon: <PhoneCall className="w-4 h-4" />, permission: 'call.view', badge: 'Live' },
-    { label: 'Unified Inbox', path: '/inbox', icon: <Inbox className="w-4 h-4" />, permission: 'inbox.view', badge: '1' },
-    { label: 'Tasks & Activities', path: '/tasks', icon: <CheckSquare className="w-4 h-4" />, permission: 'task.manage' },
+    {
+      label: 'Telecaller Queue',
+      path: '/calls',
+      icon: <PhoneCall className="w-4 h-4" />,
+      permission: 'call.view',
+      badge: queuedCallsCount > 0 ? String(queuedCallsCount) : undefined,
+    },
+    { label: 'Unified Inbox', path: '/inbox', icon: <Inbox className="w-4 h-4" />, permission: 'inbox.view' },
+    {
+      label: 'Tasks & Activities',
+      path: '/tasks',
+      icon: <CheckSquare className="w-4 h-4" />,
+      permission: 'task.manage',
+      badge: pendingTasksCount > 0 ? String(pendingTasksCount) : undefined,
+    },
     { label: 'Proposals', path: '/proposals', icon: <FileText className="w-4 h-4" />, permission: 'proposal.create' },
     { label: 'Invoices & Billing', path: '/invoices', icon: <CreditCard className="w-4 h-4" />, permission: 'invoice.view' },
     { label: 'Reports & Analytics', path: '/reports', icon: <BarChart3 className="w-4 h-4" />, permission: 'reports.view' },

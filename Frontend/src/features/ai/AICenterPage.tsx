@@ -4,60 +4,67 @@ import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Button } from '@/components/ui/Button';
 import { useUIStore } from '@/stores/uiStore';
 import { Sparkles, Zap, BrainCircuit, CheckCheck } from 'lucide-react';
+import { useDeals } from '../deals/hooks/useDeals';
+import { useLeads } from '../leads/hooks/useLeads';
 
-import { useAI } from './hooks/useAI';
+interface AIRecommendation {
+  id: string;
+  title: string;
+  intentLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+  content: string;
+  keyPoints: string[];
+  suggestedAction: string;
+}
 
 export function AICenterPage() {
   const { addToast } = useUIStore();
-  const { generateLeadSummary, isAnalyzingLead } = useAI();
-  const [approvedCount, setApprovedCount] = useState(2);
+  const { deals } = useDeals();
+  const { leads } = useLeads();
+  const [isRunningAudit, setIsRunningAudit] = useState(false);
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
 
-  const handleRunAudit = async () => {
-    try {
-      await generateLeadSummary('lead_01');
-    } catch {
-      // Graceful fallback handled in hook
-    }
+  const handleRunAudit = () => {
+    setIsRunningAudit(true);
+    setTimeout(() => {
+      setIsRunningAudit(false);
+      if (leads.length === 0 && deals.length === 0) {
+        addToast({
+          type: 'info',
+          title: 'Audit Completed',
+          message: 'Pipeline intelligence engine checked all workspace models. No risk anomalies detected.',
+        });
+      } else {
+        const generated: AIRecommendation[] = [];
+        if (leads.some((l) => l.score >= 80)) {
+          generated.push({
+            id: `rec_${Date.now()}_1`,
+            title: 'High-Intent Inbound Lead Acceleration',
+            intentLevel: 'HIGH',
+            content: 'High-scoring leads detected in queue. Immediate outbound touch recommended.',
+            keyPoints: ['Lead scoring model indicates >80% conversion readiness', 'Auto-route to speed dialer'],
+            suggestedAction: 'Queue immediate phone touch for qualified prospects.',
+          });
+        }
+        if (deals.some((d) => d.stage === 'PROPOSAL')) {
+          generated.push({
+            id: `rec_${Date.now()}_2`,
+            title: 'Proposal Follow-up Optimization',
+            intentLevel: 'MEDIUM',
+            content: 'Active proposals are in progress. Follow up within 48h SLA.',
+            keyPoints: ['Decision makers reviewing contracts', 'Accelerate closing cycle'],
+            suggestedAction: 'Dispatch automated check-in email.',
+          });
+        }
+        setRecommendations(generated);
+        addToast({
+          type: 'ai',
+          title: 'Pipeline Audit Complete',
+          message: `Generated ${generated.length} next-best-action intelligence signals.`,
+        });
+      }
+    }, 900);
   };
-
-  const recommendations = [
-    {
-      id: 'ai_rec_01',
-      title: 'Stalled Deal Risk Alert: BlueHarbor Medical ($195,000)',
-      intentLevel: 'HIGH' as const,
-      content:
-        'No rep touch recorded for 5 days. Decision maker visited SOC2 compliance page twice this morning. Deal probability dropped by 15%.',
-      keyPoints: [
-        'SDR response SLA breached yesterday',
-        'Decision maker actively reading security docs',
-      ],
-      suggestedAction: 'Auto-dispatch security packet and trigger 15-minute callback alert for Jordan Miller.',
-    },
-    {
-      id: 'ai_rec_02',
-      title: 'High Conversion Upsell Opportunity: CyberShield Global',
-      intentLevel: 'HIGH' as const,
-      content:
-        'Client usage surpassed 92% of seat threshold. Monthly active call volume grew 40% month-over-month.',
-      keyPoints: [
-        'Contract renews in 60 days',
-        'High likelihood of accepting 100-seat expansion quote',
-      ],
-      suggestedAction: 'Draft and propose Enterprise 100-Seat Add-on quote for $60,000 ARR increase.',
-    },
-    {
-      id: 'ai_rec_03',
-      title: 'Optimized Telecaller Queue Routing',
-      intentLevel: 'MEDIUM' as const,
-      content:
-        'Inbound prospects in Pacific Time zone exhibit 3.2x higher connection rates between 2:00 PM and 4:30 PM PST.',
-      keyPoints: [
-        '14 West Coast leads pending in dialer queue',
-        'Current rep allocation under-indexed on afternoon hours',
-      ],
-      suggestedAction: 'Re-prioritize Pacific Time leads to top of afternoon outreach queue.',
-    },
-  ];
 
   return (
     <div className="space-y-fib-21">
@@ -80,11 +87,11 @@ export function AICenterPage() {
         <Button
           variant="ai"
           size="sm"
-          isLoading={isAnalyzingLead}
+          isLoading={isRunningAudit}
           icon={<Zap className="w-3.5 h-3.5" />}
           onClick={handleRunAudit}
         >
-          {isAnalyzingLead ? 'Running Audit...' : 'Run Full Pipeline Audit'}
+          {isRunningAudit ? 'Analyzing Workspace...' : 'Run Full Pipeline Audit'}
         </Button>
       </div>
 
@@ -98,7 +105,7 @@ export function AICenterPage() {
             <span className="text-[10px] font-bold uppercase text-neutral-400 block tracking-wider">
               Autonomous AI Copilot
             </span>
-            <span className="text-sm font-bold text-neutral-900">Active (Continuous Stream)</span>
+            <span className="text-sm font-bold text-neutral-900">Active (Continuous Monitoring)</span>
           </div>
         </div>
 
@@ -122,9 +129,9 @@ export function AICenterPage() {
           </div>
           <div>
             <span className="text-[10px] font-bold uppercase text-neutral-400 block tracking-wider">
-              Revenue Saved
+              Recommendations Active
             </span>
-            <span className="text-sm font-bold text-green-700 tabular-nums">+$315,000 ARR</span>
+            <span className="text-sm font-bold text-blue-700 tabular-nums">{recommendations.length} Pending</span>
           </div>
         </div>
       </div>
@@ -135,40 +142,53 @@ export function AICenterPage() {
           Live Next-Best-Action Feed
         </h3>
 
-        {recommendations.map((rec) => (
-          <WidgetBoundary key={rec.id} name={`ai-center-${rec.id}`}>
-            <AIContentCard
-              title={rec.title}
-              intentLevel={rec.intentLevel}
-              content={rec.content}
-              keyPoints={rec.keyPoints}
-              suggestedAction={rec.suggestedAction}
-              onApprove={() => {
-                setApprovedCount((c) => c + 1);
-                addToast({
-                  type: 'ai',
-                  title: 'AI Action Executed',
-                  message: rec.suggestedAction,
-                });
-              }}
-              onDiscard={() => {
-                addToast({
-                  type: 'info',
-                  title: 'Suggestion Dismissed',
-                  message: 'Logged feedback.',
-                });
-              }}
-              onApplyAction={() => {
-                setApprovedCount((c) => c + 1);
-                addToast({
-                  type: 'success',
-                  title: 'Action Triggered',
-                  message: rec.suggestedAction,
-                });
-              }}
-            />
-          </WidgetBoundary>
-        ))}
+        {recommendations.length === 0 ? (
+          <div className="skeuo-raised-2 bg-white rounded-md border border-neutral-200 p-12 text-center space-y-2">
+            <BrainCircuit className="w-10 h-10 text-neutral-300 mx-auto" />
+            <h4 className="text-sm font-bold text-neutral-800">No Pending AI Risk Alerts</h4>
+            <p className="text-xs text-neutral-500 max-w-md mx-auto">
+              Autonomous pipeline copilot is continuously analyzing prospect interactions, SLA deadlines, and lead scores. Click 'Run Full Pipeline Audit' to scan all active models.
+            </p>
+          </div>
+        ) : (
+          recommendations.map((rec) => (
+            <WidgetBoundary key={rec.id} name={`ai-center-${rec.id}`}>
+              <AIContentCard
+                title={rec.title}
+                intentLevel={rec.intentLevel}
+                content={rec.content}
+                keyPoints={rec.keyPoints}
+                suggestedAction={rec.suggestedAction}
+                onApprove={() => {
+                  setApprovedCount((c) => c + 1);
+                  setRecommendations((prev) => prev.filter((r) => r.id !== rec.id));
+                  addToast({
+                    type: 'ai',
+                    title: 'AI Action Executed',
+                    message: rec.suggestedAction,
+                  });
+                }}
+                onDiscard={() => {
+                  setRecommendations((prev) => prev.filter((r) => r.id !== rec.id));
+                  addToast({
+                    type: 'info',
+                    title: 'Suggestion Dismissed',
+                    message: 'Logged feedback.',
+                  });
+                }}
+                onApplyAction={() => {
+                  setApprovedCount((c) => c + 1);
+                  setRecommendations((prev) => prev.filter((r) => r.id !== rec.id));
+                  addToast({
+                    type: 'success',
+                    title: 'Action Triggered',
+                    message: rec.suggestedAction,
+                  });
+                }}
+              />
+            </WidgetBoundary>
+          ))
+        )}
       </div>
     </div>
   );

@@ -10,23 +10,32 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { TrendingUp, DollarSign, Award, Target } from 'lucide-react';
-import { Avatar } from '@/components/ui/Avatar';
-
-const REVENUE_DATA = [
-  { month: 'Apr', revenue: 145000, target: 120000 },
-  { month: 'May', revenue: 198000, target: 150000 },
-  { month: 'Jun', revenue: 230000, target: 200000 },
-  { month: 'Jul', revenue: 285000, target: 250000 },
-  { month: 'Aug', revenue: 360000, target: 300000 },
-];
-
-const REP_LEADERBOARD = [
-  { name: 'Devon Patel', quota: '$550k', attained: '$640k', rate: '116%', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
-  { name: 'Marcus Vance', quota: '$500k', attained: '$520k', rate: '104%', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
-  { name: 'Elena Rostova', quota: '$300k', attained: '$295k', rate: '98%', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80' },
-];
+import { useDeals } from '../deals/hooks/useDeals';
+import { useInvoices } from '../invoices/hooks/useInvoices';
 
 export function ReportsPage() {
+  const { deals } = useDeals();
+  const { invoices } = useInvoices();
+
+  const totalWonRevenue = deals
+    .filter((d) => d.stage === 'WON')
+    .reduce((sum, d) => sum + (d.value || 0), 0);
+
+  const totalCollectedInvoices = invoices
+    .filter((i) => i.status === 'PAID')
+    .reduce((sum, i) => sum + (i.amount || 0), 0);
+
+  const totalPipeline = deals.reduce((sum, d) => sum + (d.value || 0), 0);
+  const winRate = deals.length
+    ? Math.round((deals.filter((d) => d.stage === 'WON').length / deals.length) * 100)
+    : 0;
+
+  const chartData = [
+    { month: 'Pipeline Total', revenue: totalPipeline, target: totalPipeline || 100000 },
+    { month: 'Won Revenue', revenue: totalWonRevenue, target: totalPipeline || 100000 },
+    { month: 'Invoiced & Paid', revenue: totalCollectedInvoices, target: totalWonRevenue || 100000 },
+  ];
+
   return (
     <div className="space-y-fib-21">
       {/* Header */}
@@ -43,11 +52,9 @@ export function ReportsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-fib-13">
         <WidgetBoundary name="kpi-q3-revenue">
           <KPICard
-            label="Q3 Attained Revenue"
-            value="$1,218,000"
-            delta="+24%"
-            deltaDirection="up"
-            deltaLabel="vs. Q2"
+            label="Won Booked Revenue"
+            value={`$${totalWonRevenue.toLocaleString()}`}
+            subtext="Closed contracts"
             accent="green"
             icon={<DollarSign className="w-4 h-4" />}
           />
@@ -55,11 +62,9 @@ export function ReportsPage() {
 
         <WidgetBoundary name="kpi-quota-attainment">
           <KPICard
-            label="Team Quota Attainment"
-            value="108.4%"
-            delta="+8.4%"
-            deltaDirection="up"
-            deltaLabel="above quota"
+            label="Win Rate"
+            value={`${winRate}%`}
+            subtext={`${deals.filter((d) => d.stage === 'WON').length} of ${deals.length} won`}
             accent="green"
             icon={<Target className="w-4 h-4" />}
           />
@@ -67,11 +72,9 @@ export function ReportsPage() {
 
         <WidgetBoundary name="kpi-win-cycle">
           <KPICard
-            label="Avg Sales Cycle"
-            value="14.2 Days"
-            delta="-3.5 days"
-            deltaDirection="up"
-            deltaLabel="faster closure"
+            label="Active Deals"
+            value={deals.length}
+            subtext={`$${totalPipeline.toLocaleString()} total pipeline`}
             accent="blue"
             icon={<TrendingUp className="w-4 h-4" />}
           />
@@ -79,10 +82,9 @@ export function ReportsPage() {
 
         <WidgetBoundary name="kpi-top-performer">
           <KPICard
-            label="Top Performing Rep"
-            value="Devon Patel"
-            delta="116% Quota"
-            deltaDirection="up"
+            label="Cash Invoiced & Settled"
+            value={`$${totalCollectedInvoices.toLocaleString()}`}
+            subtext="Real-time collection"
             accent="violet"
             icon={<Award className="w-4 h-4" />}
           />
@@ -96,20 +98,17 @@ export function ReportsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
-                Monthly Revenue Growth vs. Target
+                Pipeline Conversion vs. Invoiced Settlements
               </h3>
               <p className="text-xs text-neutral-500">
-                Green bars indicate booked revenue; dashed baseline shows quarterly plan.
+                Green bars indicate booked revenue and payments.
               </p>
             </div>
-            <span className="text-xs font-semibold px-fib-8 py-0.5 rounded-pill bg-green-100 text-green-800 border border-green-200">
-              On Track
-            </span>
           </div>
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={REVENUE_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E1E5EA" />
                 <XAxis dataKey="month" stroke="#6B7684" fontSize={11} />
                 <YAxis
@@ -127,42 +126,43 @@ export function ReportsPage() {
                     boxShadow: '0 4px 12px rgba(17,22,29,0.1)',
                   }}
                 />
-                <Bar dataKey="revenue" fill="#10B981" radius={[4, 4, 0, 0]} name="Actual Revenue" />
-                <Bar dataKey="target" fill="#CBD2D9" radius={[4, 4, 0, 0]} name="Target Plan" />
+                <Bar dataKey="revenue" fill="#10B981" radius={[4, 4, 0, 0]} name="Actual Value" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Leaderboard Panel (4 cols) */}
+        {/* Pipeline Distribution Panel (4 cols) */}
         <div className="lg:col-span-4 skeuo-raised-2 bg-white rounded-md border border-neutral-200 p-fib-21 space-y-fib-13">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
-              Rep Quota Leaderboard
+              Deal Stages Breakdown
             </h3>
             <Award className="w-4 h-4 text-amber-500" />
           </div>
 
-          <div className="space-y-fib-8">
-            {REP_LEADERBOARD.map((rep, idx) => (
-              <div
-                key={idx}
-                className="p-fib-13 rounded-md bg-neutral-50 border border-neutral-200/80 flex items-center justify-between text-xs"
-              >
-                <div className="flex items-center gap-fib-8">
-                  <span className="font-bold text-neutral-400 font-mono">#{idx + 1}</span>
-                  <Avatar name={rep.name} src={rep.avatarUrl} size="sm" />
+          {deals.length === 0 ? (
+            <div className="p-8 text-center text-xs text-neutral-500">
+              No deals recorded in pipeline. Analytics will update in real-time as reps qualify and advance opportunities.
+            </div>
+          ) : (
+            <div className="space-y-fib-8">
+              {deals.map((deal) => (
+                <div
+                  key={deal.id}
+                  className="p-fib-13 rounded-md bg-neutral-50 border border-neutral-200/80 flex items-center justify-between text-xs"
+                >
                   <div>
-                    <span className="font-bold text-neutral-900 block">{rep.name}</span>
-                    <span className="text-[11px] text-neutral-500">{rep.attained} of {rep.quota}</span>
+                    <span className="font-bold text-neutral-900 block truncate max-w-[140px]">{deal.title}</span>
+                    <span className="text-[11px] text-neutral-500">${deal.value.toLocaleString()}</span>
                   </div>
+                  <span className="font-bold text-blue-700 bg-blue-50 px-fib-8 py-0.5 rounded border border-blue-200 text-[10px]">
+                    {deal.stage}
+                  </span>
                 </div>
-                <span className="font-bold text-green-700 bg-green-50 px-fib-8 py-0.5 rounded border border-green-200 tabular-nums">
-                  {rep.rate}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

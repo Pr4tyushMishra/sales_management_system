@@ -84,22 +84,31 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState('org_acme_corp');
-  const [availableOrgs, setAvailableOrgs] = useState<TenantOrgDto[]>([
-    { id: 'org_acme_corp', organizationId: 'org_acme_corp', name: 'Acme Enterprise Inc.', tier: 'ENTERPRISE_PLUS', activeUsers: 6, maxUsers: 50, storageGb: 148, apiCalls24h: 184500, health: 'HEALTHY', slaStatus: 'COMPLIANT' },
-    { id: 'org_apex_global', organizationId: 'org_apex_global', name: 'Apex Capital Logistics', tier: 'ENTERPRISE', activeUsers: 4, maxUsers: 30, storageGb: 89, apiCalls24h: 92300, health: 'HEALTHY', slaStatus: 'COMPLIANT' },
-  ]);
+  const [selectedOrg, setSelectedOrg] = useState('');
+  const [availableOrgs, setAvailableOrgs] = useState<TenantOrgDto[]>([]);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch live active tenant organizations
+  // Forgot-password modal state
+  const [forgotStep, setForgotStep] = useState<'closed' | 'email' | 'reset'>('closed');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [sentEmailMsg, setSentEmailMsg] = useState('');
+
+  // Fetch live active tenant organizations from database
   useEffect(() => {
-    organizationsApi.getOrganizations().then((orgs) => {
+    organizationsApi.getPublicOrganizations().then((orgs) => {
       if (Array.isArray(orgs) && orgs.length > 0) {
         setAvailableOrgs(orgs);
-        if (!selectedOrg) {
-          setSelectedOrg(orgs[0].organizationId || orgs[0].id);
-        }
+        setSelectedOrg((current) => {
+          if (current && orgs.some((o) => (o.organizationId || o.id) === current)) {
+            return current;
+          }
+          return orgs[0].organizationId || orgs[0].id;
+        });
       }
     }).catch(() => {});
   }, []);
@@ -160,6 +169,57 @@ export function LoginPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setForgotLoading(true);
+    try {
+      const result = await authApi.forgotPassword(forgotEmail.trim());
+      setSentEmailMsg(result.message);
+      setForgotStep('reset');
+      addToast({
+        type: 'success',
+        title: 'OTP Sent',
+        message: 'Check your Super Admin email inbox.',
+      });
+    } catch (err: any) {
+      addToast({
+        type: 'danger',
+        title: 'Request Failed',
+        message: err?.message || 'No Super Admin account found with this email.',
+      });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      addToast({ type: 'danger', title: 'Passwords Do Not Match', message: 'Please confirm your new password.' });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await authApi.resetPassword(otp, newPassword);
+      addToast({ type: 'success', title: 'Password Updated', message: 'Sign in with your new password.' });
+      setForgotStep('closed');
+      setForgotEmail('');
+      setOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setSentEmailMsg('');
+    } catch (err: any) {
+      addToast({
+        type: 'danger',
+        title: 'Reset Failed',
+        message: err?.message || 'OTP is incorrect or expired.',
+      });
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -365,9 +425,15 @@ export function LoginPage() {
                   />
                   <span>Remember this device</span>
                 </label>
-                <span className="text-blue-600 font-semibold text-xs cursor-pointer hover:underline">
-                  Forgot password?
-                </span>
+                {selectedRole === 'SUPER_ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => { setForgotEmail(email); setForgotStep('email'); }}
+                    className="text-violet-600 font-semibold text-xs hover:underline focus:outline-none"
+                  >
+                    Forgot password?
+                  </button>
+                )}
               </div>
 
               <Button
@@ -390,6 +456,101 @@ export function LoginPage() {
       <footer className="border-t border-neutral-200 bg-white py-4 px-6 text-center text-xs text-neutral-500">
         <p>© 2026 ADVMEN SalesOS Inc. All rights reserved. Enterprise Revenue Operating System.</p>
       </footer>
+
+      {/* Forgot Password Modal */}
+      {forgotStep !== 'closed' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            onClick={() => setForgotStep('closed')}
+            className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm animate-in fade-in"
+          />
+          <div className="relative w-full max-w-md bg-white rounded-2xl border border-neutral-200 p-8 z-10 shadow-2xl space-y-5">
+            {/* Accent stripe */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-violet-700 rounded-t-2xl" />
+
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-violet-50 border border-violet-200">
+                <KeyRound className="w-5 h-5 text-violet-700" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-neutral-900">
+                  {forgotStep === 'email' ? 'Super Admin Password Reset' : 'Set New Password'}
+                </h3>
+                <p className="text-xs text-neutral-500">
+                  {forgotStep === 'email'
+                    ? 'Enter your Super Admin email to generate a reset token.'
+                    : 'Enter the reset token and choose a new password.'}
+                </p>
+              </div>
+            </div>
+
+            {forgotStep === 'email' ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <Input
+                  label="Super Admin Email"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="superadmin@advmen.com"
+                  required
+                />
+                <div className="p-3 rounded-lg bg-violet-50 border border-violet-200 text-[11px] text-violet-800 flex items-start gap-2">
+                  <Lock className="w-3.5 h-3.5 text-violet-600 mt-0.5 shrink-0" />
+                  <span>A <strong>6-digit OTP</strong> will be emailed to your Super Admin address. It expires in <strong>10 minutes</strong>.</span>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="ghost" onClick={() => setForgotStep('closed')} className="flex-1 justify-center">Cancel</Button>
+                  <Button type="submit" variant="primary" isLoading={forgotLoading} className="flex-1 justify-center">Send OTP</Button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                {sentEmailMsg && (
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 flex items-start gap-2">
+                    <span className="text-base leading-none">📬</span>
+                    <span>{sentEmailMsg}</span>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-neutral-700">6-Digit OTP</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="● ● ● ● ● ●"
+                    required
+                    className="w-full text-center text-2xl font-bold tracking-[0.5em] py-3 px-4 rounded-lg border border-neutral-300 bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-neutral-900 placeholder:text-neutral-300 placeholder:tracking-normal placeholder:text-base"
+                  />
+                  <p className="text-[10px] text-neutral-400 text-center">Enter the code sent to {forgotEmail}</p>
+                </div>
+                <Input
+                  label="New Password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min. 8 characters"
+                  required
+                />
+                <Input
+                  label="Confirm New Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat new password"
+                  required
+                />
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="ghost" onClick={() => { setForgotStep('email'); setOtp(''); }} className="flex-1 justify-center">← Resend OTP</Button>
+                  <Button type="submit" variant="primary" isLoading={forgotLoading} className="flex-1 justify-center">Update Password</Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

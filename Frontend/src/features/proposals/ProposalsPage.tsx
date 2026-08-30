@@ -158,9 +158,7 @@ export function ProposalsPage() {
           <KPICard
             label="Proposal Pipeline Value"
             value={`$${proposals.reduce((s, p) => s + p.amount, 0).toLocaleString()}`}
-            delta="+$65k"
-            deltaDirection="up"
-            deltaLabel="pipeline"
+            subtext="Active contract value"
             accent="green"
             icon={<DollarSign className="w-4 h-4" />}
           />
@@ -169,10 +167,8 @@ export function ProposalsPage() {
         <WidgetBoundary name="kpi-acceptance-rate">
           <KPICard
             label="Acceptance Rate"
-            value="82%"
-            delta="+8%"
-            deltaDirection="up"
-            deltaLabel="vs. target"
+            value={proposals.length ? `${Math.round((proposals.filter((p) => p.status === 'ACCEPTED').length / proposals.length) * 100)}%` : '0%'}
+            subtext={`${proposals.filter((p) => p.status === 'ACCEPTED').length} accepted`}
             accent="green"
             icon={<CheckCircle className="w-4 h-4" />}
           />
@@ -180,11 +176,9 @@ export function ProposalsPage() {
 
         <WidgetBoundary name="kpi-ai-quote-speed">
           <KPICard
-            label="Avg Generation Time"
-            value="1.8m"
-            delta="AI auto-fill"
-            deltaDirection="up"
-            deltaLabel="instant CPQ"
+            label="Proposals In Draft"
+            value={proposals.filter((p) => p.status === 'DRAFT').length}
+            subtext="Ready for dispatch"
             accent="violet"
             icon={<Sparkles className="w-4 h-4" />}
           />

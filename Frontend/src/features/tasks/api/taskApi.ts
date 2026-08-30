@@ -5,12 +5,14 @@ import { SEED_TASKS } from '@/lib/mockData';
 export interface CreateTaskPayload {
   title: string;
   description?: string;
+  /** ISO datetime string – sent as `dueAt` to backend */
   dueDate?: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  relatedEntityType?: 'LEAD' | 'DEAL' | 'CALL' | 'INVOICE' | 'GENERAL';
+  relatedEntityType?: 'LEAD' | 'DEAL' | 'ACCOUNT';
   relatedEntityId?: string;
   relatedEntityName?: string;
-  assignedTo?: string;
+  assignedToName?: string;
+  notes?: string;
 }
 
 export interface UpdateTaskPayload extends Partial<CreateTaskPayload> {
@@ -18,20 +20,54 @@ export interface UpdateTaskPayload extends Partial<CreateTaskPayload> {
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 }
 
+/** Transforms the frontend-friendly payload into the shape the backend Zod schema expects */
+function toBackendPayload(payload: CreateTaskPayload) {
+  const {
+    dueDate,
+    relatedEntityType,
+    relatedEntityId,
+    relatedEntityName,
+    description,
+    ...rest
+  } = payload;
+
+  return {
+    ...rest,
+    notes: description ?? rest.notes,
+    dueAt: dueDate ?? new Date(Date.now() + 86400000).toISOString(),
+    relatedTo: {
+      type: relatedEntityType ?? 'DEAL',
+      id: relatedEntityId ?? 'general',
+      name: relatedEntityName ?? 'General',
+    },
+  };
+}
+
 function normalizeTask(raw: any): Task {
+  // Backend returns `dueAt`; frontend payload uses `dueDate`
+  const dueDateRaw = raw.dueAt ?? raw.dueDate;
+  // Backend returns a nested `relatedTo` object; frontend payload uses flat fields
+  const relatedTo = raw.relatedTo ?? {
+    type: raw.relatedEntityType,
+    id: raw.relatedEntityId,
+    name: raw.relatedEntityName,
+  };
+
   return {
     id: raw.id || raw._id?.toString() || `task_${Date.now()}`,
     organizationId: raw.organizationId || 'org_acme_corp',
     title: raw.title || 'Follow up with client',
-    dueDate: raw.dueDate ? new Date(raw.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Today at 6:00 PM',
+    dueDate: dueDateRaw
+      ? new Date(dueDateRaw).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : 'Today at 6:00 PM',
     isCompleted: raw.isCompleted ?? raw.status === 'COMPLETED',
     priority: raw.priority || 'HIGH',
     relatedTo: {
-      type: raw.relatedEntityType || 'DEAL',
-      id: raw.relatedEntityId || 'deal_01',
-      name: raw.relatedEntityName || 'General Follow-up',
+      type: relatedTo?.type || 'DEAL',
+      id: relatedTo?.id || 'general',
+      name: relatedTo?.name || 'General',
     },
-    assignedToName: raw.assignedToName || 'Devon Patel',
+    assignedToName: raw.assignedToName || 'Unassigned',
   };
 }
 
@@ -49,9 +85,10 @@ export const taskApi = {
   },
 
   createTask: async (payload: CreateTaskPayload): Promise<Task> => {
+    const backendPayload = toBackendPayload(payload);
     return await withFallback(
       (async () => {
-        const created = await apiClient.post<any>('/tasks', payload);
+        const created = await apiClient.post<any>('/tasks', backendPayload);
         return normalizeTask(created);
       })(),
       normalizeTask({

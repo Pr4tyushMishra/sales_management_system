@@ -44,14 +44,7 @@ export interface UserListResponse {
   total: number;
 }
 
-const FALLBACK_USERS: UserDto[] = [
-  { id: 'usr_sarah_01', name: 'Sarah Chen', role: 'ORG_ADMIN', email: 'sarah.c@acmecorp.com', organizationId: 'org_acme_corp', department: 'Executive Ops', avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80', isActive: true },
-  { id: 'usr_marcus_02', name: 'Marcus Vance', role: 'SALES_MANAGER', email: 'marcus.v@acmecorp.com', organizationId: 'org_acme_corp', department: 'Global Sales', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', isActive: true },
-  { id: 'usr_devon_03', name: 'Devon Patel', role: 'SALES_REP', email: 'devon.p@acmecorp.com', organizationId: 'org_acme_corp', department: 'Mid-Market Sales', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', isActive: true },
-  { id: 'usr_elena_04', name: 'Elena Rostova', role: 'TELECALLER', email: 'elena.r@acmecorp.com', organizationId: 'org_acme_corp', department: 'Outreach & Telephony', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80', isActive: true },
-  { id: 'usr_jordan_05', name: 'Jordan Miller', role: 'MARKETING_SDR', email: 'jordan.m@acmecorp.com', organizationId: 'org_acme_corp', department: 'Inbound Demand', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80', isActive: true },
-  { id: 'usr_victoria_06', name: 'Victoria Cross', role: 'FINANCE_VIEWER', email: 'victoria.c@acmecorp.com', organizationId: 'org_acme_corp', department: 'Finance & Billing', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80', isActive: true },
-];
+const FALLBACK_USERS: UserDto[] = [];
 
 export const usersApi = {
   getUsers: async (params?: { organizationId?: string; role?: string; search?: string }): Promise<UserDto[]> => {

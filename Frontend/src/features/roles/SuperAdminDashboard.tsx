@@ -69,6 +69,10 @@ export function SuperAdminDashboard() {
   const [userToDelete, setUserToDelete] = useState<UserDto | null>(null);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
 
+  // Delete Organization State
+  const [orgToDelete, setOrgToDelete] = useState<TenantOrgDto | null>(null);
+  const [isDeletingOrg, setIsDeletingOrg] = useState(false);
+
   // Load Tenants
   const loadTenants = useCallback(async () => {
     setIsLoadingTenants(true);
@@ -111,14 +115,14 @@ export function SuperAdminDashboard() {
 
   // Lock background scroll when modal is active
   useEffect(() => {
-    if (isNewTenantOpen || isNewUserOpen || userToDelete) {
+    if (isNewTenantOpen || isNewUserOpen || userToDelete || orgToDelete) {
       const originalBody = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalBody;
       };
     }
-  }, [isNewTenantOpen, isNewUserOpen, userToDelete]);
+  }, [isNewTenantOpen, isNewUserOpen, userToDelete, orgToDelete]);
 
   const generateRandomPassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
@@ -246,6 +250,37 @@ export function SuperAdminDashboard() {
     }
   };
 
+  // Handle Organization Deletion
+  const handleDeleteOrg = async () => {
+    if (!orgToDelete) return;
+    setIsDeletingOrg(true);
+    const targetId = orgToDelete.organizationId || orgToDelete.id;
+    try {
+      await organizationsApi.deleteOrganization(targetId);
+      setTenants((prev) => prev.filter((t) => (t.organizationId || t.id) !== targetId));
+      addToast({
+        type: 'success',
+        title: 'Workspace Deleted',
+        message: `Tenant workspace '${orgToDelete.name}' and all associated records have been removed.`,
+      });
+      setOrgToDelete(null);
+      if (targetOrgId === targetId) {
+        setTargetOrgId('');
+      }
+      loadTenants();
+      loadUsers();
+    } catch (err: any) {
+      console.error('Failed to delete organization:', err);
+      addToast({
+        type: 'danger',
+        title: 'Deletion Failed',
+        message: err?.message || 'Failed to delete tenant workspace.',
+      });
+    } finally {
+      setIsDeletingOrg(false);
+    }
+  };
+
   const tenantColumns: ColumnDef<TenantOrgDto>[] = [
     {
       id: 'name',
@@ -286,7 +321,7 @@ export function SuperAdminDashboard() {
       align: 'right',
       cell: ({ row }) => (
         <span className="font-mono text-xs font-bold tabular-nums text-neutral-900">
-          {(row.apiCalls24h || 120000).toLocaleString()} req
+          {(row.apiCalls24h || 0).toLocaleString()} req
         </span>
       ),
     },
@@ -304,18 +339,34 @@ export function SuperAdminDashboard() {
       id: 'actions',
       header: 'Action',
       align: 'right',
-      cell: ({ row }) => (
-        <Button
-          size="xs"
-          variant="secondary"
-          onClick={() => {
-            setTargetOrgId(row.organizationId || row.id);
-            setIsNewUserOpen(true);
-          }}
-        >
-          + Add Member
-        </Button>
-      ),
+      cell: ({ row }) => {
+        const isRoot = (row.organizationId || row.id) === 'org_advmen_platform';
+
+        return (
+          <div className="flex items-center justify-end gap-1.5">
+            <Button
+              size="xs"
+              variant="secondary"
+              onClick={() => {
+                setTargetOrgId(row.organizationId || row.id);
+                setIsNewUserOpen(true);
+              }}
+            >
+              + Add Member
+            </Button>
+            {!isRoot && (
+              <button
+                type="button"
+                onClick={() => setOrgToDelete(row)}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                title={`Delete workspace ${row.name}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -394,10 +445,9 @@ export function SuperAdminDashboard() {
 
         <WidgetBoundary name="kpi-api-throughput">
           <KPICard
-            label="Platform Uptime SLA"
-            value="99.998%"
-            delta="Zero downtime"
-            deltaDirection="up"
+            label="Tenant Cluster Health"
+            value={`${tenants.length ? Math.round((tenants.filter((t) => (t.health || 'HEALTHY') === 'HEALTHY').length / tenants.length) * 100) : 100}%`}
+            subtext={`${tenants.filter((t) => (t.health || 'HEALTHY') === 'HEALTHY').length} of ${tenants.length} Operational`}
             accent="violet"
             icon={<Activity className="w-4 h-4" />}
           />
@@ -406,7 +456,7 @@ export function SuperAdminDashboard() {
         <WidgetBoundary name="kpi-storage-utilization">
           <KPICard
             label="Encrypted Audio Storage"
-            value="383 GB"
+            value={`${tenants.reduce((sum, t) => sum + (t.storageGb || 0), 0)} GB`}
             subtext="AES-256 Vault"
             accent="neutral"
             icon={<HardDrive className="w-4 h-4" />}
@@ -809,6 +859,60 @@ export function SuperAdminDashboard() {
                 icon={<Trash2 className="w-4 h-4" />}
               >
                 Delete Account
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal: Delete Tenant Organization Confirmation */}
+      {orgToDelete && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm p-4 flex items-center justify-center animate-in fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeletingOrg) setOrgToDelete(null);
+          }}
+        >
+          <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 my-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-neutral-900">Delete Tenant Workspace</h3>
+                <p className="text-xs text-neutral-500">Irreversible workspace decommissioning.</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs text-neutral-600 leading-relaxed">
+              <p>
+                Are you sure you want to permanently delete <strong className="text-neutral-900">{orgToDelete.name}</strong> (
+                <span className="font-mono text-neutral-700">{orgToDelete.organizationId || orgToDelete.id}</span>)?
+              </p>
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-100 text-rose-800 space-y-1">
+                <span className="font-bold block">⚠️ Cascade Data Deletion Warning:</span>
+                <span>
+                  All enrolled team members, active leads, pipeline deals, tasks, calls, and invoices associated with this workspace will be permanently erased.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-100">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setOrgToDelete(null)}
+                disabled={isDeletingOrg}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteOrg}
+                isLoading={isDeletingOrg}
+                icon={<Trash2 className="w-4 h-4" />}
+              >
+                Delete Workspace
               </Button>
             </div>
           </div>

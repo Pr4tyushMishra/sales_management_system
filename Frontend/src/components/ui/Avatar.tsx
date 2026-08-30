@@ -8,19 +8,40 @@ export interface AvatarProps {
   className?: string;
 }
 
-export function Avatar({ name, src, size = 'md', status, className }: AvatarProps) {
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+const VIBRANT_PALETTE = [
+  { bg: '#2563EB', border: '#1D4ED8' }, // Blue
+  { bg: '#4F46E5', border: '#4338CA' }, // Indigo
+  { bg: '#059669', border: '#047857' }, // Emerald
+  { bg: '#7C3AED', border: '#6D28D9' }, // Violet
+  { bg: '#D97706', border: '#B45309' }, // Amber
+  { bg: '#E11D48', border: '#BE123C' }, // Rose
+  { bg: '#0D9488', border: '#0F766E' }, // Teal
+  { bg: '#9333EA', border: '#7E22CE' }, // Purple
+  { bg: '#0284C7', border: '#0369A1' }, // Sky
+];
+
+function getAvatarTheme(name: string) {
+  if (!name || typeof name !== 'string') return VIBRANT_PALETTE[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % VIBRANT_PALETTE.length;
+  return VIBRANT_PALETTE[index];
+}
+
+export function Avatar({ name, size = 'md', status, className }: AvatarProps) {
+  const cleanName = (name || 'User').trim();
+  const parts = cleanName.split(' ').filter(Boolean);
+  const initials = parts.length > 1
+    ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+    : cleanName.slice(0, 1).toUpperCase();
 
   const sizeStyles = {
-    xs: 'w-6 h-6 text-[10px]',
-    sm: 'w-7 h-7 text-xs',
-    md: 'w-9 h-9 text-xs',
-    lg: 'w-11 h-11 text-sm font-semibold',
+    xs: 'w-6 h-6 text-[10px] font-bold',
+    sm: 'w-7 h-7 text-xs font-bold',
+    md: 'w-9 h-9 text-xs font-bold',
+    lg: 'w-11 h-11 text-sm font-bold',
   };
 
   const statusDotSizes = {
@@ -37,19 +58,24 @@ export function Avatar({ name, src, size = 'md', status, className }: AvatarProp
     offline: 'bg-neutral-400 ring-white',
   };
 
+  const theme = getAvatarTheme(cleanName);
+
   return (
     <div className={cn('relative inline-block select-none shrink-0', className)}>
       <div
+        style={{
+          backgroundColor: theme.bg,
+          color: '#ffffff',
+          borderColor: theme.border,
+        }}
         className={cn(
-          'rounded-full overflow-hidden flex items-center justify-center font-medium skeuo-raised-1 bg-gradient-to-b from-neutral-100 to-neutral-200 text-neutral-700 border border-neutral-300 ring-1 ring-white/80',
+          'rounded-full overflow-hidden flex items-center justify-center font-bold shadow-sm ring-1 ring-white/60 tracking-wider border',
           sizeStyles[size]
         )}
       >
-        {src ? (
-          <img src={src} alt={name} className="w-full h-full object-cover" />
-        ) : (
-          <span>{initials}</span>
-        )}
+        <span className="leading-none text-white drop-shadow-sm select-none font-mono">
+          {initials}
+        </span>
       </div>
       {status && (
         <span
@@ -79,12 +105,12 @@ export function AvatarGroup({
   return (
     <div className="flex items-center -space-x-2 overflow-hidden">
       {visible.map((u, i) => (
-        <Avatar key={i} name={u.name} src={u.avatarUrl} size={size} className="ring-2 ring-white" />
+        <Avatar key={i} name={u.name} size={size} className="ring-2 ring-white" />
       ))}
       {remaining > 0 && (
         <div
           className={cn(
-            'rounded-full bg-neutral-200 text-neutral-600 font-semibold flex items-center justify-center ring-2 ring-white',
+            'rounded-full bg-neutral-800 text-white font-bold flex items-center justify-center ring-2 ring-white',
             size === 'xs' ? 'w-6 h-6 text-[10px]' : size === 'sm' ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-xs'
           )}
         >

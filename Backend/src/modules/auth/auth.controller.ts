@@ -64,6 +64,18 @@ export class AuthController {
   async getMe(req: Request, res: Response): Promise<void> {
     ApiResponse.success(res, { user: req.user }, 200, undefined, 'Current authenticated session');
   }
+
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+    ApiResponse.success(res, result, 200, undefined, result.message);
+  }
+
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    const { otp, newPassword } = req.body;
+    await authService.resetPassword(otp, newPassword);
+    ApiResponse.success(res, { success: true }, 200, undefined, 'Password updated successfully. Please sign in again.');
+  }
 }
 
 export const authController = new AuthController();

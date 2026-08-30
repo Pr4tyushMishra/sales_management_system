@@ -110,9 +110,7 @@ export function DealsPage() {
           <KPICard
             label="Active Pipeline Value"
             value={`$${totalPipelineValue.toLocaleString()}`}
-            delta="+$120k"
-            deltaDirection="up"
-            deltaLabel="active opps"
+            subtext={`${deals.length} Active Deals`}
             accent="blue"
             icon={<DollarSign className="w-4 h-4" />}
           />
@@ -122,9 +120,7 @@ export function DealsPage() {
           <KPICard
             label="Closed Won Revenue"
             value={`$${wonRevenue.toLocaleString()}`}
-            delta="+22%"
-            deltaDirection="up"
-            deltaLabel="this quarter"
+            subtext={`${deals.filter((d) => d.stage === 'WON').length} Closed Won`}
             accent="green"
             icon={<Award className="w-4 h-4" />}
           />
@@ -134,9 +130,7 @@ export function DealsPage() {
           <KPICard
             label="Forecast Win Rate"
             value={`${winRate}%`}
-            delta="+5%"
-            deltaDirection="up"
-            deltaLabel="vs. target"
+            subtext="Won vs total pipeline"
             accent="green"
             icon={<TrendingUp className="w-4 h-4" />}
           />
@@ -146,10 +140,8 @@ export function DealsPage() {
           <KPICard
             label="At-Risk Deals"
             value={deals.filter((d) => d.health === 'AT_RISK').length}
-            delta="1 deal"
-            deltaDirection="down"
-            deltaLabel="requires manager touch"
-            accent="rose"
+            subtext={deals.filter((d) => d.health === 'AT_RISK').length ? 'Requires attention' : 'All deals healthy'}
+            accent={deals.filter((d) => d.health === 'AT_RISK').length ? 'rose' : 'green'}
             icon={<AlertCircle className="w-4 h-4" />}
           />
         </WidgetBoundary>

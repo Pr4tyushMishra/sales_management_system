@@ -58,4 +58,12 @@ export const authApi = {
       console.warn('⚠️ Server logout failed, clearing local state:', err);
     }
   },
+
+  forgotPassword: async (email: string): Promise<{ message: string; expiresAt: string }> => {
+    return await apiClient.post('/auth/forgot-password', { email });
+  },
+
+  resetPassword: async (otp: string, newPassword: string): Promise<void> => {
+    await apiClient.post('/auth/reset-password', { otp, newPassword });
+  },
 };
