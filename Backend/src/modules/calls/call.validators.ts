@@ -20,8 +20,14 @@ export const LogCallSchema = z.object({
     ])
     .optional(),
   durationSeconds: z.number().nonnegative().optional().default(0),
-  startedAt: z.string().datetime().optional(),
-  endedAt: z.string().datetime().optional(),
+  startedAt: z
+    .union([z.string(), z.date()])
+    .optional()
+    .transform((val) => (val ? new Date(val).toISOString() : undefined)),
+  endedAt: z
+    .union([z.string(), z.date()])
+    .optional()
+    .transform((val) => (val ? new Date(val).toISOString() : undefined)),
   notes: z.string().optional(),
   transcriptSnippet: z.string().optional(),
   aiSentiment: z.enum(['POSITIVE', 'NEUTRAL', 'NEGATIVE']).optional(),

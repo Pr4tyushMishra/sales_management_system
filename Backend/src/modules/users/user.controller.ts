@@ -11,9 +11,9 @@ export class UserController {
     ApiResponse.paginated(
       res,
       result.users,
-      result.page,
-      result.totalPages,
       result.total,
+      result.page,
+      Number(req.query.limit) || 50,
       'Team members retrieved successfully'
     );
   }

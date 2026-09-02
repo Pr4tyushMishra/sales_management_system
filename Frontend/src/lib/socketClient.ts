@@ -4,16 +4,24 @@ let socket: Socket | null = null;
 
 export function getSocketClient(): Socket {
   if (!socket) {
-    const backendUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? 'http://localhost:5001'
-      : (import.meta as any).env?.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '') || window.location.origin;
+    const isBrowser = typeof window !== 'undefined';
+    let backendUrl = '';
 
-    socket = io(backendUrl, {
+    if (isBrowser) {
+      if (window.location.port === '3000' || window.location.port === '5173') {
+        backendUrl = `${window.location.protocol}//${window.location.hostname}:5001`;
+      } else {
+        backendUrl = (import.meta as any).env?.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, '') || window.location.origin;
+      }
+    }
+
+    socket = io(backendUrl || 'http://localhost:5001', {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       autoConnect: false,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      timeout: 10000,
     });
 
     socket.on('connect', () => {
@@ -21,7 +29,8 @@ export function getSocketClient(): Socket {
     });
 
     socket.on('connect_error', (err) => {
-      console.warn('⚠️ [WebSocket] Connection warning:', err.message);
+      // Gracefully log debug warning without spamming console
+      console.debug('ℹ️ [WebSocket] Connecting/Polling event bus:', err.message);
     });
   }
 

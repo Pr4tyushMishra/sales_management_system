@@ -40,7 +40,10 @@ export const CreateLeadSchema = z.object({
   ownerId: z.string().optional(),
   budget: z.number().nonnegative().optional().default(0),
   requirement: z.string().optional(),
-  nextFollowUpAt: z.string().datetime().optional(),
+  nextFollowUpAt: z
+    .union([z.string(), z.date()])
+    .optional()
+    .transform((val) => (val ? new Date(val).toISOString() : undefined)),
   tags: z.array(z.string()).optional().default([]),
   customFields: z.record(z.unknown()).optional().default({}),
 });

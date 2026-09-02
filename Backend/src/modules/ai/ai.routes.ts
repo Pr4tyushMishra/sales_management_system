@@ -20,3 +20,9 @@ aiRouter.post(
   requirePermission(PERMISSION_KEYS.AI_USE),
   aiController.generateEmailDraft
 );
+
+aiRouter.post(
+  '/pipeline-audit',
+  requirePermission(PERMISSION_KEYS.AI_USE),
+  aiController.runPipelineAudit
+);

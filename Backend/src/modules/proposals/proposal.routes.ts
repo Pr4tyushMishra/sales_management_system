@@ -36,3 +36,9 @@ proposalRouter.patch(
   validateRequest({ body: UpdateProposalStatusSchema }),
   proposalController.updateProposalStatus
 );
+
+proposalRouter.delete(
+  '/:id',
+  requirePermission(PERMISSION_KEYS.PROPOSAL_MANAGE),
+  proposalController.deleteProposal
+);

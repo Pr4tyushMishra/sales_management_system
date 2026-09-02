@@ -63,6 +63,28 @@ export function useInvoices(params?: InvoiceFilterParams) {
     },
   });
 
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: (id: string) => invoiceApi.deleteInvoice(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData<Invoice[]>(['invoices', params], (old = []) =>
+        old.filter((i) => i.id !== deletedId)
+      );
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      addToast({
+        type: 'success',
+        title: 'Invoice Deleted',
+        message: 'Invoice has been removed.',
+      });
+    },
+    onError: (err: any) => {
+      addToast({
+        type: 'danger',
+        title: 'Delete Failed',
+        message: err?.message || 'Could not delete invoice.',
+      });
+    },
+  });
+
   return {
     invoices: invoicesQuery.data || [],
     metrics: metricsQuery.data,
@@ -73,5 +95,7 @@ export function useInvoices(params?: InvoiceFilterParams) {
     isCreating: createInvoiceMutation.isPending,
     recordPayment: recordPaymentMutation.mutateAsync,
     isRecordingPayment: recordPaymentMutation.isPending,
+    deleteInvoice: deleteInvoiceMutation.mutateAsync,
+    isDeleting: deleteInvoiceMutation.isPending,
   };
 }

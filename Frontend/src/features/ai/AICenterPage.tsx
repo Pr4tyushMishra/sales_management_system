@@ -4,8 +4,7 @@ import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Button } from '@/components/ui/Button';
 import { useUIStore } from '@/stores/uiStore';
 import { Sparkles, Zap, BrainCircuit, CheckCheck } from 'lucide-react';
-import { useDeals } from '../deals/hooks/useDeals';
-import { useLeads } from '../leads/hooks/useLeads';
+import { aiApi } from './api/aiApi';
 
 interface AIRecommendation {
   id: string;
@@ -18,52 +17,47 @@ interface AIRecommendation {
 
 export function AICenterPage() {
   const { addToast } = useUIStore();
-  const { deals } = useDeals();
-  const { leads } = useLeads();
   const [isRunningAudit, setIsRunningAudit] = useState(false);
   const [approvedCount, setApprovedCount] = useState(0);
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
+  const [auditMeta, setAuditMeta] = useState<{ totalDeals: number; totalLeads: number; model: string } | null>(null);
 
-  const handleRunAudit = () => {
+  const handleRunAudit = async () => {
     setIsRunningAudit(true);
-    setTimeout(() => {
-      setIsRunningAudit(false);
-      if (leads.length === 0 && deals.length === 0) {
-        addToast({
-          type: 'info',
-          title: 'Audit Completed',
-          message: 'Pipeline intelligence engine checked all workspace models. No risk anomalies detected.',
-        });
-      } else {
-        const generated: AIRecommendation[] = [];
-        if (leads.some((l) => l.score >= 80)) {
-          generated.push({
-            id: `rec_${Date.now()}_1`,
-            title: 'High-Intent Inbound Lead Acceleration',
-            intentLevel: 'HIGH',
-            content: 'High-scoring leads detected in queue. Immediate outbound touch recommended.',
-            keyPoints: ['Lead scoring model indicates >80% conversion readiness', 'Auto-route to speed dialer'],
-            suggestedAction: 'Queue immediate phone touch for qualified prospects.',
-          });
-        }
-        if (deals.some((d) => d.stage === 'PROPOSAL')) {
-          generated.push({
-            id: `rec_${Date.now()}_2`,
-            title: 'Proposal Follow-up Optimization',
-            intentLevel: 'MEDIUM',
-            content: 'Active proposals are in progress. Follow up within 48h SLA.',
-            keyPoints: ['Decision makers reviewing contracts', 'Accelerate closing cycle'],
-            suggestedAction: 'Dispatch automated check-in email.',
-          });
-        }
-        setRecommendations(generated);
-        addToast({
-          type: 'ai',
-          title: 'Pipeline Audit Complete',
-          message: `Generated ${generated.length} next-best-action intelligence signals.`,
+    try {
+      const response = await aiApi.runPipelineAudit();
+      const recs = response?.recommendations || [];
+      setRecommendations(recs);
+      if (response?.meta) {
+        setAuditMeta({
+          totalDeals: response.meta.totalDeals,
+          totalLeads: response.meta.totalLeads,
+          model: response.meta.model,
         });
       }
-    }, 900);
+
+      if (recs.length === 0) {
+        addToast({
+          type: 'info',
+          title: 'Audit Complete',
+          message: 'Workspace database evaluated. All active opportunities are healthy with no immediate risks.',
+        });
+      } else {
+        addToast({
+          type: 'ai',
+          title: 'Live Pipeline Audit Complete',
+          message: `Generated ${recs.length} live actionable recommendations from workspace records.`,
+        });
+      }
+    } catch (err: any) {
+      addToast({
+        type: 'danger',
+        title: 'Audit Failed',
+        message: err?.message || 'Could not complete AI pipeline audit.',
+      });
+    } finally {
+      setIsRunningAudit(false);
+    }
   };
 
   return (
@@ -105,7 +99,11 @@ export function AICenterPage() {
             <span className="text-[10px] font-bold uppercase text-neutral-400 block tracking-wider">
               Autonomous AI Copilot
             </span>
-            <span className="text-sm font-bold text-neutral-900">Active (Continuous Monitoring)</span>
+            <span className="text-sm font-bold text-neutral-900">
+              {auditMeta
+                ? `Audited ${auditMeta.totalDeals} Deals & ${auditMeta.totalLeads} Leads`
+                : 'Active (Live Monitoring)'}
+            </span>
           </div>
         </div>
 

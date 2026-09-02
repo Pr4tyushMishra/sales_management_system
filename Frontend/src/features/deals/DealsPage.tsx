@@ -5,6 +5,7 @@ import { KPICard } from '@/components/patterns/KPICard';
 import { SlideOverPanel } from '@/components/patterns/SlideOverPanel';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { StatusPill } from '@/components/patterns/StatusPill';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { PermissionGate } from '@/components/system/PermissionGate';
@@ -18,14 +19,17 @@ import {
   Calendar,
   User,
   ShieldCheck,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { useDeals } from './hooks/useDeals';
 
 export function DealsPage() {
-  const { deals, createDeal, moveStage } = useDeals();
+  const { deals, createDeal, moveStage, deleteDeal, isDeleting, isCreating } = useDeals();
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [isNewDealOpen, setIsNewDealOpen] = useState(false);
+  const [dealToDelete, setDealToDelete] = useState<Deal | null>(null);
 
   // Form State
   const [newDealTitle, setNewDealTitle] = useState('');
@@ -33,6 +37,11 @@ export function DealsPage() {
   const [newDealContact, setNewDealContact] = useState('');
   const [newDealValue, setNewDealValue] = useState('75000');
   const [newDealStage, setNewDealStage] = useState<DealStage>('DISCOVERY');
+  const [newDealCloseDate, setNewDealCloseDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
 
   const stages: KanbanColumn[] = [
     { id: 'DISCOVERY', label: 'Discovery', accent: 'neutral' },
@@ -49,16 +58,16 @@ export function DealsPage() {
 
   const handleCreateDeal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDealTitle || !newDealCompany) return;
+    if (!newDealTitle.trim() || !newDealCompany.trim()) return;
 
     await createDeal({
-      title: newDealTitle,
-      company: newDealCompany,
-      contactName: newDealContact || 'Key Contact',
+      title: newDealTitle.trim(),
+      company: newDealCompany.trim(),
+      contactName: newDealContact.trim() || 'Key Contact',
       value: Number(newDealValue) || 75000,
       stage: newDealStage,
       probability: newDealStage === 'WON' ? 100 : 50,
-      expectedCloseDate: '2026-09-30',
+      expectedCloseDate: newDealCloseDate || new Date(Date.now() + 30 * 86400000).toISOString(),
     });
 
     setIsNewDealOpen(false);
@@ -76,7 +85,7 @@ export function DealsPage() {
     .reduce((sum, d) => sum + d.value, 0);
 
   const winRate = Math.round(
-    (deals.filter((d) => d.stage === 'WON').length / deals.length) * 100
+    (deals.filter((d) => d.stage === 'WON').length / (deals.length || 1)) * 100
   );
 
   return (
@@ -155,6 +164,7 @@ export function DealsPage() {
             deals={deals}
             onDealClick={(deal) => setSelectedDeal(deal)}
             onMoveDealStage={handleMoveStage}
+            onDeleteDeal={(deal) => setDealToDelete(deal)}
           />
         </div>
       </WidgetBoundary>
@@ -246,6 +256,22 @@ export function DealsPage() {
                 ))}
               </div>
             </div>
+
+            {/* Delete Deal Option */}
+            <div className="pt-fib-13 border-t border-neutral-200 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-neutral-800 block">Delete Opportunity</span>
+                <span className="text-[11px] text-neutral-500">Permanently remove from sales pipeline</span>
+              </div>
+              <Button
+                size="xs"
+                variant="danger"
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={() => setDealToDelete(selectedDeal)}
+              >
+                Delete Deal
+              </Button>
+            </div>
           </div>
         )}
       </SlideOverPanel>
@@ -290,30 +316,31 @@ export function DealsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-fib-13">
+              <div className="grid grid-cols-2 gap-fib-13 items-start">
                 <Input
                   label="Deal Value ($)"
                   type="number"
                   value={newDealValue}
                   onChange={(e) => setNewDealValue(e.target.value)}
                 />
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-neutral-700">
-                    Initial Stage
-                  </label>
-                  <select
-                    value={newDealStage}
-                    onChange={(e) => setNewDealStage(e.target.value as DealStage)}
-                    className="w-full skeuo-sunken text-xs px-fib-8 py-fib-8 rounded-md bg-neutral-100 border border-neutral-300 text-neutral-900 outline-none"
-                  >
-                    {stages.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Select
+                  label="Initial Stage"
+                  value={newDealStage}
+                  onChange={(val) => setNewDealStage(val as DealStage)}
+                  options={stages.map((s) => ({
+                    value: s.id,
+                    label: s.label,
+                    description: `Column: ${s.label}`,
+                  }))}
+                />
               </div>
+
+              <Input
+                label="Target Close Date"
+                type="date"
+                value={newDealCloseDate}
+                onChange={(e) => setNewDealCloseDate(e.target.value)}
+              />
 
               <div className="pt-fib-13 border-t border-neutral-100 flex items-center justify-end gap-fib-8">
                 <Button
@@ -323,11 +350,59 @@ export function DealsPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary">
+                <Button type="submit" variant="primary" isLoading={isCreating}>
                   Create Opportunity
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Deal Confirmation Dialog */}
+      {dealToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-fib-13">
+          <div
+            onClick={() => setDealToDelete(null)}
+            className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm animate-in fade-in"
+          />
+          <div className="relative w-full max-w-md skeuo-raised-3 bg-white rounded-xl border border-neutral-200 p-fib-21 z-10 shadow-2xl space-y-fib-13">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-neutral-900">Delete Opportunity</h3>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Are you sure you want to delete <strong className="text-neutral-900">{dealToDelete.title}</strong> ({dealToDelete.company})? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-fib-8 border-t border-neutral-100 flex items-center justify-end gap-fib-8">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDealToDelete(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                isLoading={isDeleting}
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={async () => {
+                  await deleteDeal(dealToDelete.id);
+                  if (selectedDeal?.id === dealToDelete.id) {
+                    setSelectedDeal(null);
+                  }
+                  setDealToDelete(null);
+                }}
+              >
+                Delete Opportunity
+              </Button>
+            </div>
           </div>
         </div>
       )}

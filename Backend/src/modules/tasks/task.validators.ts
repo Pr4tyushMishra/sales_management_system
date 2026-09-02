@@ -8,7 +8,17 @@ export const CreateTaskSchema = z.object({
     name: z.string().min(1),
   }),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional().default('MEDIUM'),
-  dueAt: z.string().datetime(),
+  dueAt: z
+    .union([z.string(), z.date()])
+    .optional()
+    .transform((val) => {
+      if (!val) {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d.toISOString();
+      }
+      return new Date(val).toISOString();
+    }),
   ownerId: z.string().optional(),
   assignedToName: z.string().optional(),
   notes: z.string().optional(),

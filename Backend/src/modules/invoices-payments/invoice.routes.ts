@@ -49,3 +49,9 @@ invoiceRouter.post(
   validateRequest({ body: RecordPaymentSchema }),
   invoiceController.recordPayment
 );
+
+invoiceRouter.delete(
+  '/:id',
+  requirePermission(PERMISSION_KEYS.INVOICE_MANAGE),
+  invoiceController.deleteInvoice
+);

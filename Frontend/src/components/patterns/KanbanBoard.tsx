@@ -1,6 +1,6 @@
 import { Deal, DealStage } from '@/types';
 import { cn } from '@/utils/cn';
-import { DollarSign, Building2, User } from 'lucide-react';
+import { DollarSign, Building2, User, Trash2, ArrowRight } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 
 export interface KanbanColumn {
@@ -14,9 +14,10 @@ interface KanbanBoardProps {
   deals: Deal[];
   onDealClick?: (deal: Deal) => void;
   onMoveDealStage?: (dealId: string, targetStage: DealStage) => void;
+  onDeleteDeal?: (deal: Deal) => void;
 }
 
-export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage }: KanbanBoardProps) {
+export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage, onDeleteDeal }: KanbanBoardProps) {
   const getStageDeals = (stageId: DealStage) => deals.filter((d) => d.stage === stageId);
 
   const getStageTotal = (stageId: DealStage) => {
@@ -75,11 +76,26 @@ export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage }: Kan
                       <h4 className="text-xs font-bold text-neutral-900 group-hover:text-blue-600 transition-colors line-clamp-2">
                         {deal.title}
                       </h4>
-                      {deal.health === 'AT_RISK' && (
-                        <span className="text-[10px] px-fib-5 py-0.2 rounded bg-amber-100 text-amber-800 font-semibold shrink-0">
-                          At Risk
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {deal.health === 'AT_RISK' && (
+                          <span className="text-[10px] px-fib-5 py-0.2 rounded bg-amber-100 text-amber-800 font-semibold">
+                            At Risk
+                          </span>
+                        )}
+                        {onDeleteDeal && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteDeal(deal);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-50 text-neutral-400 hover:text-rose-600 transition-all"
+                            title="Delete opportunity"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-fib-3 text-xs text-neutral-500">
@@ -99,10 +115,10 @@ export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage }: Kan
                         ${deal.value.toLocaleString()}
                       </span>
 
-                      <div className="flex items-center gap-fib-5">
+                      <div className="flex items-center gap-2">
                         {onMoveDealStage && (
                           <div
-                            className="relative group/menu"
+                            className="relative"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <select
@@ -110,18 +126,19 @@ export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage }: Kan
                               onChange={(e) =>
                                 onMoveDealStage(deal.id, e.target.value as DealStage)
                               }
-                              className="text-[10px] bg-neutral-100 hover:bg-neutral-200 rounded px-fib-5 py-0.5 border border-neutral-200 font-medium text-neutral-700 outline-none cursor-pointer"
+                              className="text-[10px] bg-neutral-50 hover:bg-neutral-100 focus:bg-white rounded-md px-2 py-1 border border-neutral-200 hover:border-neutral-300 font-semibold text-neutral-700 shadow-sm outline-none cursor-pointer transition-colors appearance-none pr-5 relative"
                               title="Move stage"
                             >
                               {stages.map((s) => (
                                 <option key={s.id} value={s.id}>
-                                  → {s.label}
+                                  {s.label}
                                 </option>
                               ))}
                             </select>
+                            <ArrowRight className="w-2.5 h-2.5 text-neutral-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                           </div>
                         )}
-                        <Avatar name={deal.assignedTo.name} size="xs" />
+                        <Avatar name={deal.assignedTo?.name || 'Deal Owner'} size="xs" />
                       </div>
                     </div>
                   </div>

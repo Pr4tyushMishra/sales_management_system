@@ -3,6 +3,7 @@ import { Task } from '@/types';
 import { KPICard } from '@/components/patterns/KPICard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { useUIStore } from '@/stores/uiStore';
 import { cn } from '@/utils/cn';
@@ -247,19 +248,17 @@ export function TasksPage() {
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 required
               />
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-neutral-700">Priority</label>
-                <select
-                  value={newTaskPriority}
-                  onChange={(e) => setNewTaskPriority(e.target.value as Task['priority'])}
-                  className="w-full skeuo-sunken text-xs px-fib-8 py-fib-8 rounded-md bg-neutral-100 border border-neutral-300 text-neutral-900 outline-none"
-                >
-                  <option value="URGENT">Urgent (SLA Triggered)</option>
-                  <option value="HIGH">High</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="LOW">Low</option>
-                </select>
-              </div>
+              <Select
+                label="Priority"
+                value={newTaskPriority}
+                onChange={(val) => setNewTaskPriority(val as Task['priority'])}
+                options={[
+                  { value: 'URGENT', label: 'Urgent (SLA Triggered)', badge: 'Urgent' },
+                  { value: 'HIGH', label: 'High Priority', badge: 'High' },
+                  { value: 'MEDIUM', label: 'Medium Priority', badge: 'Medium' },
+                  { value: 'LOW', label: 'Low Priority', badge: 'Low' },
+                ]}
+              />
 
               <div className="pt-fib-13 border-t border-neutral-100 flex items-center justify-end gap-fib-8">
                 <Button type="button" variant="ghost" onClick={() => setIsNewTaskOpen(false)}>

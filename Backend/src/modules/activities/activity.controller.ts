@@ -31,6 +31,13 @@ export class ActivityController {
 
     ApiResponse.created(res, activity, 'Note logged to timeline');
   }
+
+  async getRecentActivities(req: Request, res: Response): Promise<void> {
+    const organizationId = req.organizationId!;
+    const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 30;
+    const activities = await activityService.getRecentActivities(organizationId, limit);
+    ApiResponse.success(res, activities, 200, undefined, 'Recent activities retrieved');
+  }
 }
 
 export const activityController = new ActivityController();

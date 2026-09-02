@@ -78,18 +78,8 @@ export const invoiceApi = {
   },
 
   createInvoice: async (payload: CreateInvoicePayload): Promise<Invoice> => {
-    return await withFallback(
-      (async () => {
-        const created = await apiClient.post<any>('/invoices', payload);
-        return normalizeInvoice(created);
-      })(),
-      normalizeInvoice({
-        ...payload,
-        id: `inv_${Date.now()}`,
-        status: 'SENT',
-      }),
-      'Invoice Creation'
-    );
+    const created = await apiClient.post<any>('/invoices', payload);
+    return normalizeInvoice(created);
   },
 
   recordPayment: async (id: string, payload?: RecordPaymentPayload): Promise<Invoice> => {
@@ -99,17 +89,12 @@ export const invoiceApi = {
       idempotencyKey: payload?.idempotencyKey || `idem_${Date.now()}_${id}`,
     };
 
-    return await withFallback(
-      (async () => {
-        const updated = await apiClient.post<any>(`/invoices/${id}/pay`, paymentData);
-        return normalizeInvoice(updated);
-      })(),
-      normalizeInvoice({
-        id,
-        status: 'PAID',
-        paidAt: new Date().toISOString(),
-      }),
-      'Invoice Payment Recording'
-    );
+    const updated = await apiClient.post<any>(`/invoices/${id}/pay`, paymentData);
+    return normalizeInvoice(updated);
+  },
+
+  deleteInvoice: async (id: string): Promise<boolean> => {
+    await apiClient.delete(`/invoices/${id}`);
+    return true;
   },
 };

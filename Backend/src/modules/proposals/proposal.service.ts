@@ -1,22 +1,35 @@
 import { proposalRepository } from './proposal.repository.js';
-import { IProposal, ProposalStatus } from './proposal.model.js';
+import { IProposal, ProposalModel, ProposalStatus } from './proposal.model.js';
 import { AppError } from '../../shared/errors/AppError.js';
 
 export class ProposalService {
-  async createProposal(organizationId: string, data: Partial<IProposal>): Promise<IProposal> {
+  async createProposal(organizationId: string, data: Partial<IProposal> & { amount?: number }): Promise<IProposal> {
     const { proposalId, proposalNumber } = await proposalRepository.generateProposalNumber(organizationId);
 
-    const items = data.items || [];
+    let items = data.items || [];
+    const baseAmount = Number(data.amount) || 75000;
+    if (items.length === 0) {
+      items = [
+        {
+          description: `${data.dealTitle || data.company || 'Enterprise'} Platform Contract`,
+          quantity: 1,
+          unitPrice: baseAmount,
+          total: baseAmount,
+        },
+      ];
+    }
+
     const subtotal = items.reduce((acc, item) => acc + item.total, 0);
     const discount = data.discount || 0;
     const taxRate = data.taxRate || 0;
     const taxAmount = (subtotal - discount) * (taxRate / 100);
-    const amount = Math.max(0, subtotal - discount + taxAmount);
+    const amount = data.amount ? Number(data.amount) : Math.max(0, subtotal - discount + taxAmount);
 
     const proposal = await proposalRepository.create(organizationId, {
       ...data,
       proposalId,
       proposalNumber,
+      items,
       subtotal,
       discount,
       taxRate,
@@ -40,7 +53,9 @@ export class ProposalService {
   }
 
   async getProposalById(organizationId: string, id: string): Promise<IProposal> {
-    const proposal = await proposalRepository.findById(organizationId, id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id } : { proposalId: id };
+    const proposal = await proposalRepository.findOne(organizationId, filter);
     if (!proposal) {
       throw AppError.notFound('Proposal');
     }
@@ -48,12 +63,15 @@ export class ProposalService {
   }
 
   async updateProposalStatus(organizationId: string, id: string, status: ProposalStatus): Promise<IProposal> {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id } : { proposalId: id };
+
     const updateData: Partial<IProposal> = { status };
     if (status === 'VIEWED') updateData.viewedAt = new Date();
     if (status === 'ACCEPTED') updateData.acceptedAt = new Date();
     if (status === 'DECLINED') updateData.declinedAt = new Date();
 
-    const updated = await proposalRepository.updateById(organizationId, id, updateData);
+    const updated = await proposalRepository.updateOne(organizationId, filter, updateData);
     if (!updated) {
       throw AppError.notFound('Proposal');
     }
@@ -65,6 +83,15 @@ export class ProposalService {
     }
 
     return updated;
+  }
+
+  async deleteProposal(organizationId: string, id: string): Promise<void> {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id, organizationId } : { proposalId: id, organizationId };
+    const result = await ProposalModel.deleteOne(filter);
+    if ((result.deletedCount ?? 0) === 0) {
+      throw AppError.notFound('Proposal');
+    }
   }
 }
 

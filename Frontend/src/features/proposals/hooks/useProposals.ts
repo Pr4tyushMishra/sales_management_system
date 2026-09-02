@@ -50,6 +50,28 @@ export function useProposals(params?: ProposalFilterParams) {
     },
   });
 
+  const deleteProposalMutation = useMutation({
+    mutationFn: (id: string) => proposalApi.deleteProposal(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData<Proposal[]>(['proposals', params], (old = []) =>
+        old.filter((p) => p.id !== deletedId)
+      );
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      addToast({
+        type: 'success',
+        title: 'Proposal Deleted',
+        message: 'Contract proposal removed.',
+      });
+    },
+    onError: (err: any) => {
+      addToast({
+        type: 'danger',
+        title: 'Delete Failed',
+        message: err?.message || 'Could not delete proposal.',
+      });
+    },
+  });
+
   return {
     proposals: proposalsQuery.data || [],
     isLoading: proposalsQuery.isLoading,
@@ -59,5 +81,7 @@ export function useProposals(params?: ProposalFilterParams) {
     isCreating: createProposalMutation.isPending,
     updateStatus: updateStatusMutation.mutateAsync,
     isUpdatingStatus: updateStatusMutation.isPending,
+    deleteProposal: deleteProposalMutation.mutateAsync,
+    isDeleting: deleteProposalMutation.isPending,
   };
 }

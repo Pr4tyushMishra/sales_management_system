@@ -64,7 +64,9 @@ export function AdminPage() {
   const loadTeamMembers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await usersApi.getUsers();
+      const data = await usersApi.getUsers(
+        organizationId ? { organizationId } : undefined
+      );
       if (Array.isArray(data)) {
         setMembers(data);
       }
@@ -78,7 +80,7 @@ export function AdminPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, organizationId]);
 
   useEffect(() => {
     loadTeamMembers();
@@ -121,6 +123,7 @@ export function AdminPage() {
         password: newPassword,
         role: newRole,
         department: department.trim() || 'General Sales',
+        organizationId: organizationId || currentUser.organizationId,
       });
 
       // Instantly prepend newly created user in UI

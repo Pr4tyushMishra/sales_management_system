@@ -37,6 +37,12 @@ export class ProposalController {
     );
     ApiResponse.success(res, updated, 200, undefined, 'Proposal status updated');
   }
+
+  async deleteProposal(req: Request, res: Response): Promise<void> {
+    const organizationId = req.organizationId!;
+    await proposalService.deleteProposal(organizationId, req.params.id);
+    ApiResponse.success(res, { deleted: true }, 200, undefined, 'Proposal deleted successfully');
+  }
 }
 
 export const proposalController = new ProposalController();

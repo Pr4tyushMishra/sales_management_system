@@ -19,6 +19,14 @@ export class AiController {
     const result = await aiService.generateEmailDraft(organizationId, userId, req.body);
     ApiResponse.success(res, result, 200, undefined, 'AI Email Draft generated');
   }
+
+  async runPipelineAudit(req: Request, res: Response): Promise<void> {
+    const organizationId = req.organizationId!;
+    const userId = req.user!.id;
+
+    const result = await aiService.runPipelineAudit(organizationId, userId);
+    ApiResponse.success(res, result, 200, undefined, 'Pipeline audit completed successfully');
+  }
 }
 
 export const aiController = new AiController();

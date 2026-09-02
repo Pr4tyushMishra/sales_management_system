@@ -16,13 +16,15 @@ import {
   CheckCircle,
   Plus,
   Building2,
-  Sparkles,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 export function ProposalsPage() {
-  const { proposals, createProposal, updateStatus, isCreating } = useProposals();
+  const { proposals, createProposal, updateStatus, deleteProposal, isCreating, isDeleting } = useProposals();
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [proposalToDelete, setProposalToDelete] = useState<Proposal | null>(null);
 
   // Form State
   const [newTitle, setNewTitle] = useState('');
@@ -115,6 +117,24 @@ export function ProposalsPage() {
         <span className="font-mono text-xs text-neutral-500">{row.validUntil}</span>
       ),
     },
+    {
+      id: 'actions',
+      header: '',
+      align: 'right',
+      cell: ({ row }) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setProposalToDelete(row);
+          }}
+          className="p-1 rounded hover:bg-rose-50 text-neutral-400 hover:text-rose-600 transition-colors"
+          title="Delete proposal"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      ),
+    },
   ];
 
   return (
@@ -178,25 +198,25 @@ export function ProposalsPage() {
           <KPICard
             label="Proposals In Draft"
             value={proposals.filter((p) => p.status === 'DRAFT').length}
-            subtext="Ready for dispatch"
-            accent="violet"
-            icon={<Sparkles className="w-4 h-4" />}
+            subtext="Awaiting client dispatch"
+            accent="neutral"
+            icon={<FileText className="w-4 h-4" />}
           />
         </WidgetBoundary>
       </div>
 
-      {/* Table */}
+      {/* Main Table */}
       <WidgetBoundary name="proposals-data-table">
         <DataTable
           columns={columns}
           data={proposals}
-          keyExtractor={(p) => p.id}
-          onRowClick={(p) => setSelectedProposal(p)}
-          searchPlaceholder="Search proposals by number, company, or deal..."
+          keyExtractor={(prop) => prop.id}
+          onRowClick={(prop) => setSelectedProposal(prop)}
+          searchPlaceholder="Search proposals by number, company, or opportunity..."
         />
       </WidgetBoundary>
 
-      {/* Create Proposal SlideOver */}
+      {/* Modal for Creating Proposal */}
       <SlideOverPanel
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -210,7 +230,7 @@ export function ProposalsPage() {
             onChange={(e) => setNewTitle(e.target.value)}
           />
           <Input
-            label="Client Company Name"
+            label="Client Company Name *"
             placeholder="Acme Logistics Global"
             value={newCompany}
             onChange={(e) => setNewCompany(e.target.value)}
@@ -230,7 +250,7 @@ export function ProposalsPage() {
             onChange={(e) => setNewRecipientEmail(e.target.value)}
           />
           <Input
-            label="Proposed Amount (USD)"
+            label="Proposed Amount (USD) *"
             type="number"
             leftIcon={<DollarSign className="w-4 h-4" />}
             value={newAmount}
@@ -238,7 +258,7 @@ export function ProposalsPage() {
             required
           />
 
-          <div className="pt-fib-13 flex justify-end gap-fib-8">
+          <div className="pt-fib-13 border-t border-neutral-100 flex justify-end gap-fib-8">
             <Button
               type="button"
               variant="ghost"
@@ -260,7 +280,7 @@ export function ProposalsPage() {
         </form>
       </SlideOverPanel>
 
-      {/* SlideOver Drawer for Proposal Preview */}
+      {/* Modal for Proposal Preview */}
       <SlideOverPanel
         isOpen={!!selectedProposal}
         onClose={() => setSelectedProposal(null)}
@@ -315,9 +335,73 @@ export function ProposalsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Delete Proposal Option */}
+            <div className="pt-fib-13 border-t border-neutral-200 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-neutral-800 block">Delete Proposal</span>
+                <span className="text-[11px] text-neutral-500">Permanently discard this quote</span>
+              </div>
+              <Button
+                size="xs"
+                variant="danger"
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={() => setProposalToDelete(selectedProposal)}
+              >
+                Delete Proposal
+              </Button>
+            </div>
           </div>
         )}
       </SlideOverPanel>
+
+      {/* Delete Proposal Confirmation Dialog */}
+      {proposalToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-fib-13">
+          <div
+            onClick={() => setProposalToDelete(null)}
+            className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm animate-in fade-in"
+          />
+          <div className="relative w-full max-w-md skeuo-raised-3 bg-white rounded-xl border border-neutral-200 p-fib-21 z-10 shadow-2xl space-y-fib-13">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-neutral-900">Delete Proposal</h3>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Are you sure you want to delete proposal <strong className="text-neutral-900">{proposalToDelete.proposalNumber}</strong> ({proposalToDelete.company})?
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-fib-8 border-t border-neutral-100 flex items-center justify-end gap-fib-8">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setProposalToDelete(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                isLoading={isDeleting}
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={async () => {
+                  await deleteProposal(proposalToDelete.id);
+                  if (selectedProposal?.id === proposalToDelete.id) {
+                    setSelectedProposal(null);
+                  }
+                  setProposalToDelete(null);
+                }}
+              >
+                Delete Proposal
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

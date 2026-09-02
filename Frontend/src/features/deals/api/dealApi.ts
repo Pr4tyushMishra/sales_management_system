@@ -61,38 +61,17 @@ export const dealApi = {
   },
 
   createDeal: async (payload: CreateDealPayload): Promise<Deal> => {
-    return await withFallback(
-      (async () => {
-        const created = await apiClient.post<any>('/deals', payload);
-        return normalizeDeal(created);
-      })(),
-      normalizeDeal({
-        ...payload,
-        id: `deal_${Date.now()}`,
-      }),
-      'Deal Creation'
-    );
+    const created = await apiClient.post<any>('/deals', payload);
+    return normalizeDeal(created);
   },
 
   updateDeal: async (id: string, payload: UpdateDealPayload): Promise<Deal> => {
-    return await withFallback(
-      (async () => {
-        const updated = await apiClient.patch<any>(`/deals/${id}`, payload);
-        return normalizeDeal(updated);
-      })(),
-      normalizeDeal({ id, ...payload }),
-      'Deal Update'
-    );
+    const updated = await apiClient.patch<any>(`/deals/${id}`, payload);
+    return normalizeDeal(updated);
   },
 
   deleteDeal: async (id: string): Promise<boolean> => {
-    return await withFallback(
-      (async () => {
-        await apiClient.delete(`/deals/${id}`);
-        return true;
-      })(),
-      true,
-      'Deal Deletion'
-    );
+    await apiClient.delete(`/deals/${id}`);
+    return true;
   },
 };

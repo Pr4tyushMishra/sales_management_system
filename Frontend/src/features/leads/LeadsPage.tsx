@@ -10,6 +10,7 @@ import { Timeline } from '@/components/patterns/Timeline';
 import { SlideOverPanel } from '@/components/patterns/SlideOverPanel';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Avatar } from '@/components/ui/Avatar';
 import { PermissionGate } from '@/components/system/PermissionGate';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
@@ -279,17 +280,18 @@ export function LeadsPage() {
           onRowClick={(lead) => setSelectedLead(lead)}
           searchPlaceholder="Search by name, company, email, or title..."
           filterComponent={
-            <select
+            <Select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="skeuo-sunken text-xs font-semibold px-fib-8 py-fib-8 rounded-md bg-white border border-neutral-300 text-neutral-700 outline-none cursor-pointer"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="NEW">New</option>
-              <option value="CONTACTED">Contacted</option>
-              <option value="QUALIFIED">Qualified</option>
-              <option value="NURTURING">Nurturing</option>
-            </select>
+              onChange={(val) => setStatusFilter(val)}
+              className="w-44"
+              options={[
+                { value: 'ALL', label: 'All Statuses' },
+                { value: 'NEW', label: 'New' },
+                { value: 'CONTACTED', label: 'Contacted' },
+                { value: 'QUALIFIED', label: 'Qualified' },
+                { value: 'NURTURING', label: 'Nurturing' },
+              ]}
+            />
           }
           bulkActions={
             <button
@@ -419,19 +421,17 @@ export function LeadsPage() {
                   value={newLeadValue}
                   onChange={(e) => setNewLeadValue(e.target.value)}
                 />
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-neutral-700">Initial Status</label>
-                  <select
-                    value={newLeadStatus}
-                    onChange={(e) => setNewLeadStatus(e.target.value as Lead['status'])}
-                    className="w-full skeuo-sunken text-xs font-semibold px-fib-8 py-2.5 rounded-md bg-neutral-100 border border-neutral-300 text-neutral-800 outline-none cursor-pointer"
-                  >
-                    <option value="NEW">New</option>
-                    <option value="QUALIFIED">Qualified</option>
-                    <option value="CONTACTED">Contacted</option>
-                    <option value="NURTURING">Nurturing</option>
-                  </select>
-                </div>
+                <Select
+                  label="Initial Status"
+                  value={newLeadStatus}
+                  onChange={(val) => setNewLeadStatus(val as Lead['status'])}
+                  options={[
+                    { value: 'NEW', label: 'New' },
+                    { value: 'QUALIFIED', label: 'Qualified' },
+                    { value: 'CONTACTED', label: 'Contacted' },
+                    { value: 'NURTURING', label: 'Nurturing' },
+                  ]}
+                />
               </div>
 
               <div className="pt-fib-13 border-t border-neutral-100 flex items-center justify-end gap-fib-8">

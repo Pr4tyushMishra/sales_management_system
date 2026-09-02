@@ -7,10 +7,36 @@ import { logger } from '../shared/logger/logger.js';
 let io: SocketIOServer | null = null;
 
 export function initSocketIO(httpServer: HttpServer): SocketIOServer {
+  const allowedOrigins = (env.CLIENT_URL || '')
+    .split(',')
+    .map((url) => url.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: [env.CLIENT_URL, 'http://localhost:3000', 'http://localhost:5173'],
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const normalized = origin.replace(/\/$/, '');
+        if (
+          allowedOrigins.includes(normalized) ||
+          normalized === 'http://localhost:3000' ||
+          normalized === 'http://localhost:5173' ||
+          normalized.endsWith('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+        if (env.NODE_ENV !== 'production') {
+          const isLocalNetwork = /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(
+            origin
+          );
+          if (isLocalNetwork) {
+            return callback(null, true);
+          }
+        }
+        callback(null, true);
+      },
       credentials: true,
+      methods: ['GET', 'POST'],
     },
     transports: ['websocket', 'polling'],
   });

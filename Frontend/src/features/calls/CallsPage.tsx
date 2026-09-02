@@ -5,6 +5,7 @@ import { KPICard } from '@/components/patterns/KPICard';
 import { DataTable, ColumnDef } from '@/components/patterns/DataTable';
 import { StatusPill } from '@/components/patterns/StatusPill';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { PermissionGate } from '@/components/system/PermissionGate';
 import { useUIStore } from '@/stores/uiStore';
@@ -326,20 +327,18 @@ export function CallsPage() {
           {/* Disposition & Notes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-fib-13 pt-1">
             <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                Call Disposition *
-              </label>
-              <select
+              <Select
+                label="Call Disposition *"
                 value={selectedDisposition}
-                onChange={(e) => setSelectedDisposition(e.target.value as CallDisposition)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-md p-fib-8 text-xs text-white outline-none"
-              >
-                <option value="INTERESTED">Interested (Send Proposal)</option>
-                <option value="MEETING_BOOKED">Meeting Booked</option>
-                <option value="CALLBACK_REQUESTED">Callback Requested</option>
-                <option value="NOT_INTERESTED">Not Interested</option>
-                <option value="VOICEMAIL">Left Voicemail</option>
-              </select>
+                onChange={(val) => setSelectedDisposition(val as CallDisposition)}
+                options={[
+                  { value: 'INTERESTED', label: 'Interested (Send Proposal)' },
+                  { value: 'MEETING_BOOKED', label: 'Meeting Booked' },
+                  { value: 'CALLBACK_REQUESTED', label: 'Callback Requested' },
+                  { value: 'NOT_INTERESTED', label: 'Not Interested' },
+                  { value: 'VOICEMAIL', label: 'Left Voicemail' },
+                ]}
+              />
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-neutral-300 mb-1">

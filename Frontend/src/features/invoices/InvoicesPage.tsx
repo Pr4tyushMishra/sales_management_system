@@ -18,11 +18,14 @@ import {
   Calendar,
   DollarSign,
   Receipt,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 
 export function InvoicesPage() {
-  const { invoices, createInvoice, recordPayment, isCreating, isRecordingPayment } = useInvoices();
+  const { invoices, createInvoice, recordPayment, deleteInvoice, isCreating, isRecordingPayment, isDeleting } = useInvoices();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [newCompany, setNewCompany] = useState('');
   const [newRecipientEmail, setNewRecipientEmail] = useState('');
   const [newAmount, setNewAmount] = useState('35000');
@@ -118,36 +121,40 @@ export function InvoicesPage() {
       header: 'Actions',
       align: 'right',
       cell: ({ row }) => {
-        if (row.status === 'PAID') {
-          return (
-            <span className="text-[11px] text-green-700 font-semibold font-mono">
-              ✓ Paid on {row.paidAt || 'Recent'}
-            </span>
-          );
-        }
         return (
-          <PermissionGate permission="invoice.manage">
-            <Button
-              size="xs"
-              variant="secondary"
-              isLoading={isRecordingPayment}
-              onClick={() => handleMarkAsPaid(row)}
+          <div className="flex items-center justify-end gap-2">
+            {row.status === 'PAID' ? (
+              <span className="text-[11px] text-green-700 font-semibold font-mono">
+                ✓ Paid on {row.paidAt || 'Recent'}
+              </span>
+            ) : (
+              <PermissionGate permission="invoice.manage">
+                <Button
+                  size="xs"
+                  variant="secondary"
+                  isLoading={isRecordingPayment}
+                  onClick={() => handleMarkAsPaid(row)}
+                >
+                  Record Payment
+                </Button>
+              </PermissionGate>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setInvoiceToDelete(row);
+              }}
+              className="p-1 rounded hover:bg-rose-50 text-neutral-400 hover:text-rose-600 transition-colors"
+              title="Delete invoice"
             >
-              Record Payment
-            </Button>
-          </PermissionGate>
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         );
       },
     },
   ];
-
-  const totalCollected = invoices
-    .filter((i) => i.status === 'PAID')
-    .reduce((sum, i) => sum + i.amount, 0);
-
-  const pendingCollection = invoices
-    .filter((i) => i.status === 'SENT' || i.status === 'OVERDUE')
-    .reduce((sum, i) => sum + i.amount, 0);
 
   return (
     <div className="space-y-fib-21">
@@ -155,14 +162,14 @@ export function InvoicesPage() {
       <div className="flex flex-wrap items-center justify-between gap-fib-13 pb-fib-8 border-b border-neutral-200">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
-            Invoices & Payment Collection
+            Invoices & Payment Reconciliation
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">
-            Automated billing, reconciliation, and payment status verification.
+            Manage client billing, automated invoicing cycles, and real-time Stripe/Razorpay sync.
           </p>
         </div>
 
-        <PermissionGate permission="invoice.create">
+        <PermissionGate permission="invoice.manage">
           <Button
             variant="primary"
             size="sm"
@@ -178,21 +185,27 @@ export function InvoicesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-fib-13">
         <WidgetBoundary name="kpi-total-collected">
           <KPICard
-            label="Total Revenue Collected"
-            value={`$${totalCollected.toLocaleString()}`}
-            subtext="Settled payments"
+            label="Collected Revenue"
+            value={`$${invoices
+              .filter((i) => i.status === 'PAID')
+              .reduce((s, i) => s + i.amount, 0)
+              .toLocaleString()}`}
+            subtext="Paid invoices"
             accent="green"
-            icon={<CheckCircle className="w-4 h-4" />}
+            icon={<CreditCard className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
-        <WidgetBoundary name="kpi-pending-collection">
+        <WidgetBoundary name="kpi-pending-invoices">
           <KPICard
-            label="Outstanding Receivables"
-            value={`$${pendingCollection.toLocaleString()}`}
-            subtext="Pending payment"
+            label="Pending Invoices"
+            value={`$${invoices
+              .filter((i) => i.status === 'SENT')
+              .reduce((s, i) => s + i.amount, 0)
+              .toLocaleString()}`}
+            subtext={`${invoices.filter((i) => i.status === 'SENT').length} Pending`}
             accent="blue"
-            icon={<CreditCard className="w-4 h-4" />}
+            icon={<CheckCircle className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
@@ -227,15 +240,15 @@ export function InvoicesPage() {
         />
       </WidgetBoundary>
 
-      {/* Create Invoice SlideOver */}
+      {/* Create Invoice Modal */}
       <SlideOverPanel
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title="Generate New Client Invoice"
       >
-        <form onSubmit={handleCreateInvoice} className="space-y-fib-13 p-fib-13">
+        <form onSubmit={handleCreateInvoice} className="space-y-fib-13">
           <Input
-            label="Client / Company Name"
+            label="Client / Company Name *"
             placeholder="Acme Enterprise Inc."
             value={newCompany}
             onChange={(e) => setNewCompany(e.target.value)}
@@ -249,7 +262,7 @@ export function InvoicesPage() {
             onChange={(e) => setNewRecipientEmail(e.target.value)}
           />
           <Input
-            label="Invoice Amount (USD)"
+            label="Invoice Amount (USD) *"
             type="number"
             placeholder="50000"
             leftIcon={<DollarSign className="w-4 h-4" />}
@@ -258,14 +271,14 @@ export function InvoicesPage() {
             required
           />
           <Input
-            label="Due Date"
+            label="Due Date *"
             type="date"
             value={newDueDate}
             onChange={(e) => setNewDueDate(e.target.value)}
             required
           />
 
-          <div className="pt-fib-13 flex justify-end gap-fib-8">
+          <div className="pt-fib-13 border-t border-neutral-100 flex justify-end gap-fib-8">
             <Button
               type="button"
               variant="ghost"
@@ -286,6 +299,51 @@ export function InvoicesPage() {
           </div>
         </form>
       </SlideOverPanel>
+
+      {/* Delete Invoice Confirmation Dialog */}
+      {invoiceToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-fib-13">
+          <div
+            onClick={() => setInvoiceToDelete(null)}
+            className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm animate-in fade-in"
+          />
+          <div className="relative w-full max-w-md skeuo-raised-3 bg-white rounded-xl border border-neutral-200 p-fib-21 z-10 shadow-2xl space-y-fib-13">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-neutral-900">Delete Invoice</h3>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Are you sure you want to delete invoice <strong className="text-neutral-900">{invoiceToDelete.invoiceNumber}</strong> ({invoiceToDelete.company})?
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-fib-8 border-t border-neutral-100 flex items-center justify-end gap-fib-8">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setInvoiceToDelete(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                isLoading={isDeleting}
+                icon={<Trash2 className="w-3.5 h-3.5" />}
+                onClick={async () => {
+                  await deleteInvoice(invoiceToDelete.id);
+                  setInvoiceToDelete(null);
+                }}
+              >
+                Delete Invoice
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

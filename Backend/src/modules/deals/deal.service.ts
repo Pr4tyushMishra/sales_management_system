@@ -1,7 +1,7 @@
 import { dealRepository } from './deal.repository.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { eventBus } from '../../shared/events/EventBus.js';
-import { IDeal, DealStage } from './deal.model.js';
+import { IDeal, DealModel, DealStage } from './deal.model.js';
 
 // Default stage probabilities per PDF Section 8
 const STAGE_PROBABILITIES: Record<DealStage, number> = {
@@ -62,7 +62,9 @@ export class DealService {
   }
 
   async getDealById(organizationId: string, id: string): Promise<IDeal> {
-    const deal = await dealRepository.findById(organizationId, id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id } : { dealId: id };
+    const deal = await dealRepository.findOne(organizationId, filter);
     if (!deal) {
       throw AppError.notFound('Deal');
     }
@@ -75,7 +77,9 @@ export class DealService {
     actorId: string,
     updateData: Partial<IDeal> & { reason?: string }
   ): Promise<IDeal> {
-    const existing = await dealRepository.findById(organizationId, id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id } : { dealId: id };
+    const existing = await dealRepository.findOne(organizationId, filter);
     if (!existing) {
       throw AppError.notFound('Deal');
     }
@@ -93,7 +97,7 @@ export class DealService {
         transitionedAt: new Date(),
       };
 
-      const updated = await dealRepository.updateById(organizationId, id, {
+      const updated = await dealRepository.updateOne(organizationId, filter, {
         ...updateData,
         $push: { transitions: transition },
       });
@@ -122,7 +126,7 @@ export class DealService {
       return updated;
     }
 
-    const updated = await dealRepository.updateById(organizationId, id, updateData);
+    const updated = await dealRepository.updateOne(organizationId, filter, updateData);
     if (!updated) {
       throw AppError.notFound('Deal');
     }
@@ -131,8 +135,10 @@ export class DealService {
   }
 
   async deleteDeal(organizationId: string, id: string): Promise<void> {
-    const deleted = await dealRepository.deleteById(organizationId, id);
-    if (!deleted) {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id, organizationId } : { dealId: id, organizationId };
+    const result = await DealModel.deleteOne(filter);
+    if ((result.deletedCount ?? 0) === 0) {
       throw AppError.notFound('Deal');
     }
   }

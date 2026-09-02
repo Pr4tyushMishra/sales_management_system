@@ -9,13 +9,19 @@ export function tenantMiddleware(req: Request, _res: Response, next: NextFunctio
     return next(AppError.unauthorized('Tenant context missing from authenticated session'));
   }
 
-  // If Super Admin passes an explicit target organization via header for platform management, allow with audit
-  if (req.user.role === USER_ROLES.SUPER_ADMIN && req.headers['x-target-organization-id']) {
-    req.organizationId = String(req.headers['x-target-organization-id']);
+  // Super Admin has global platform clearance across all tenant workspaces
+  if (req.user.role === USER_ROLES.SUPER_ADMIN) {
+    if (req.headers['x-target-organization-id']) {
+      req.organizationId = String(req.headers['x-target-organization-id']);
+    } else if (req.query?.organizationId) {
+      req.organizationId = String(req.query.organizationId);
+    } else if (req.body?.organizationId) {
+      req.organizationId = String(req.body.organizationId);
+    }
     return next();
   }
 
-  // Security Rule: Reject if client attempts to override organizationId in query or body
+  // Security Rule for non-super-admin: Reject if client attempts to override organizationId in query or body
   const bodyOrg = req.body?.organizationId;
   const queryOrg = req.query?.organizationId;
 

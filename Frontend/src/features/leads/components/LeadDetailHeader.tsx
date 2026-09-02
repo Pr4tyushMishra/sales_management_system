@@ -2,6 +2,7 @@ import { Lead } from '@/types';
 import { LeadScoreBadge } from './LeadScoreBadge';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { Select } from '@/components/ui/Select';
 import { Phone, Mail, Building2, DollarSign, UserCheck } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
 
@@ -25,20 +26,19 @@ export function LeadDetailHeader({ lead, onCallClick, onEmailClick, onStatusChan
             <div className="flex items-center gap-fib-8 mb-1">
               <h2 className="text-lg font-bold text-neutral-900">{lead.name}</h2>
               <LeadScoreBadge score={lead.score} category={lead.scoreCategory} />
-              <div className="relative inline-flex items-center">
-                <select
+              <div className="w-36">
+                <Select
                   value={lead.status}
-                  onChange={(e) => onStatusChange?.(e.target.value as Lead['status'])}
-                  className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 cursor-pointer outline-none transition-colors"
-                  title="Change lead status"
-                >
-                  <option value="NEW">NEW</option>
-                  <option value="CONTACTED">CONTACTED</option>
-                  <option value="QUALIFIED">QUALIFIED ★</option>
-                  <option value="NURTURING">NURTURING</option>
-                  <option value="UNQUALIFIED">UNQUALIFIED</option>
-                  <option value="CONVERTED">CONVERTED</option>
-                </select>
+                  onChange={(val) => onStatusChange?.(val as Lead['status'])}
+                  options={[
+                    { value: 'NEW', label: 'NEW' },
+                    { value: 'CONTACTED', label: 'CONTACTED' },
+                    { value: 'QUALIFIED', label: 'QUALIFIED ★' },
+                    { value: 'NURTURING', label: 'NURTURING' },
+                    { value: 'UNQUALIFIED', label: 'UNQUALIFIED' },
+                    { value: 'CONVERTED', label: 'CONVERTED' },
+                  ]}
+                />
               </div>
             </div>
             <div className="flex items-center gap-fib-8 text-xs text-neutral-500">

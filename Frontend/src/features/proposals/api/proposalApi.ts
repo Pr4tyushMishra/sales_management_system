@@ -54,31 +54,17 @@ export const proposalApi = {
   },
 
   createProposal: async (payload: CreateProposalPayload): Promise<Proposal> => {
-    return await withFallback(
-      (async () => {
-        const created = await apiClient.post<any>('/proposals', payload);
-        return normalizeProposal(created);
-      })(),
-      normalizeProposal({
-        ...payload,
-        id: `prop_${Date.now()}`,
-        status: 'SENT',
-      }),
-      'Proposal Creation'
-    );
+    const created = await apiClient.post<any>('/proposals', payload);
+    return normalizeProposal(created);
   },
 
   updateStatus: async (id: string, status: Proposal['status']): Promise<Proposal> => {
-    return await withFallback(
-      (async () => {
-        const updated = await apiClient.patch<any>(`/proposals/${id}/status`, { status });
-        return normalizeProposal(updated);
-      })(),
-      normalizeProposal({
-        id,
-        status,
-      }),
-      'Proposal Status Update'
-    );
+    const updated = await apiClient.patch<any>(`/proposals/${id}/status`, { status });
+    return normalizeProposal(updated);
+  },
+
+  deleteProposal: async (id: string): Promise<boolean> => {
+    await apiClient.delete(`/proposals/${id}`);
+    return true;
   },
 };

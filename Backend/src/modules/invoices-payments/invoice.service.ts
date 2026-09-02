@@ -1,5 +1,5 @@
 import { invoiceRepository } from './invoice.repository.js';
-import { IInvoice } from './invoice.model.js';
+import { IInvoice, InvoiceModel } from './invoice.model.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { eventBus } from '../../shared/events/EventBus.js';
 
@@ -29,7 +29,9 @@ export class InvoiceService {
   }
 
   async getInvoiceById(organizationId: string, id: string): Promise<IInvoice> {
-    const invoice = await invoiceRepository.findById(organizationId, id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id } : { invoiceId: id };
+    const invoice = await invoiceRepository.findOne(organizationId, filter);
     if (!invoice) {
       throw AppError.notFound('Invoice');
     }
@@ -44,7 +46,9 @@ export class InvoiceService {
     id: string,
     paymentData: { paymentId: string; paymentProvider?: string; idempotencyKey: string }
   ): Promise<IInvoice> {
-    const invoice = await invoiceRepository.findById(organizationId, id);
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id } : { invoiceId: id };
+    const invoice = await invoiceRepository.findOne(organizationId, filter);
     if (!invoice) {
       throw AppError.notFound('Invoice');
     }
@@ -58,7 +62,7 @@ export class InvoiceService {
       throw AppError.conflict('Invoice has already been paid');
     }
 
-    const updated = await invoiceRepository.updateById(organizationId, id, {
+    const updated = await invoiceRepository.updateOne(organizationId, filter, {
       status: 'PAID',
       paidAt: new Date(),
       paymentId: paymentData.paymentId,
@@ -84,6 +88,15 @@ export class InvoiceService {
     }
 
     return updated;
+  }
+
+  async deleteInvoice(organizationId: string, id: string): Promise<void> {
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    const filter = isObjectId ? { _id: id, organizationId } : { invoiceId: id, organizationId };
+    const result = await InvoiceModel.deleteOne(filter);
+    if ((result.deletedCount ?? 0) === 0) {
+      throw AppError.notFound('Invoice');
+    }
   }
 
   async getRevenueMetrics(organizationId: string) {

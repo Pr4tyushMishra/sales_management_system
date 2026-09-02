@@ -9,6 +9,8 @@
  * - Fault-Tolerant Fallback Helpers for Subsystem Isolation
  */
 
+import { useSessionStore } from '@/stores/sessionStore';
+
 export interface ApiSuccessResponse<T> {
   success: true;
   data: T;
@@ -79,6 +81,16 @@ export async function request<T>(
   }
   if (!headers.has('X-Request-Id')) {
     headers.set('X-Request-Id', generateRequestId());
+  }
+  if (!headers.has('X-Target-Organization-Id')) {
+    try {
+      const activeOrgId = useSessionStore.getState()?.organizationId;
+      if (activeOrgId) {
+        headers.set('X-Target-Organization-Id', activeOrgId);
+      }
+    } catch {
+      // Graceful fallback if session store is not ready
+    }
   }
 
   const fetchOptions: RequestInit = {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { KPICard } from '@/components/patterns/KPICard';
 import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { useCalls } from '../calls/hooks/useCalls';
 import { CallRecord, CallDisposition } from '@/types';
 import { useUIStore } from '@/stores/uiStore';
@@ -216,20 +217,18 @@ export function TelecallerDashboard() {
           {/* Disposition Selection */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-fib-13">
             <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                Fast Disposition *
-              </label>
-              <select
+              <Select
+                label="Fast Disposition *"
                 value={selectedDisposition}
-                onChange={(e) => setSelectedDisposition(e.target.value as CallDisposition)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-md p-fib-8 text-xs text-white outline-none"
-              >
-                <option value="MEETING_BOOKED">Meeting Booked (Demo Confirmed)</option>
-                <option value="INTERESTED">Interested (Send Proposal)</option>
-                <option value="CALLBACK_REQUESTED">Callback Requested</option>
-                <option value="NOT_INTERESTED">Not Interested</option>
-                <option value="VOICEMAIL">Left Voicemail</option>
-              </select>
+                onChange={(val) => setSelectedDisposition(val as CallDisposition)}
+                options={[
+                  { value: 'MEETING_BOOKED', label: 'Meeting Booked (Demo Confirmed)' },
+                  { value: 'INTERESTED', label: 'Interested (Send Proposal)' },
+                  { value: 'CALLBACK_REQUESTED', label: 'Callback Requested' },
+                  { value: 'NOT_INTERESTED', label: 'Not Interested' },
+                  { value: 'VOICEMAIL', label: 'Left Voicemail' },
+                ]}
+              />
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-neutral-300 mb-1">

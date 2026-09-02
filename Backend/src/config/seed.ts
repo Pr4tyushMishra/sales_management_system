@@ -13,27 +13,30 @@ import { ActivityModel } from '../modules/activities/activity.model.js';
 import { USER_ROLES, ROLE_DEFAULT_PERMISSIONS } from './constants.js';
 import { logger } from '../shared/logger/logger.js';
 
-export async function seedDatabase(): Promise<void> {
-  logger.info('🌱 Initializing Clean Production Database & Super Admin Setup...');
+export async function seedDatabase(forceClean: boolean = false): Promise<void> {
+  logger.info('🌱 Verifying Platform Database & Super Admin Setup...');
 
-  // 1. Purge legacy mock/demo data across collections
-  const [leadsRes, dealsRes, tasksRes, autoRes, propRes, invRes, callRes, actRes, orgsRes, usersRes] = await Promise.all([
-    LeadModel.deleteMany({}),
-    DealModel.deleteMany({}),
-    TaskModel.deleteMany({}),
-    AutomationModel.deleteMany({}),
-    ProposalModel.deleteMany({}),
-    InvoiceModel.deleteMany({}),
-    CallModel.deleteMany({}),
-    ActivityModel.deleteMany({}),
-    OrganizationModel.deleteMany({ organizationId: { $ne: 'org_advmen_platform' } }),
-    UserModel.deleteMany({ email: { $ne: 'dwivediankit768@gmail.com' } }),
-  ]);
-  logger.info(
-    `🧹 Cleared mock records: ${leadsRes.deletedCount} leads, ${dealsRes.deletedCount} deals, ${tasksRes.deletedCount} tasks, ${orgsRes.deletedCount} mock orgs, ${usersRes.deletedCount} mock users.`
-  );
+  // Only purge when explicitly requested via CLI with forceClean flag
+  if (forceClean) {
+    logger.info('🧹 forceClean requested: purging mock records...');
+    const [leadsRes, dealsRes, tasksRes, autoRes, propRes, invRes, callRes, actRes, orgsRes, usersRes] = await Promise.all([
+      LeadModel.deleteMany({}),
+      DealModel.deleteMany({}),
+      TaskModel.deleteMany({}),
+      AutomationModel.deleteMany({}),
+      ProposalModel.deleteMany({}),
+      InvoiceModel.deleteMany({}),
+      CallModel.deleteMany({}),
+      ActivityModel.deleteMany({}),
+      OrganizationModel.deleteMany({ organizationId: { $ne: 'org_advmen_platform' } }),
+      UserModel.deleteMany({ role: { $ne: USER_ROLES.SUPER_ADMIN } }),
+    ]);
+    logger.info(
+      `🧹 Cleared records: ${leadsRes.deletedCount} leads, ${dealsRes.deletedCount} deals, ${tasksRes.deletedCount} tasks, ${orgsRes.deletedCount} orgs, ${usersRes.deletedCount} users.`
+    );
+  }
 
-  // 2. Initialize Platform Operations Root Workspace
+  // 1. Initialize / Upsert Platform Operations Root Workspace
   const platformOrg = {
     organizationId: 'org_advmen_platform',
     name: 'ADVMEN Platform Ops',
@@ -59,32 +62,38 @@ export async function seedDatabase(): Promise<void> {
     { $set: platformOrg },
     { upsert: true, new: true }
   );
-  logger.info(`✅ Root platform workspace initialized (${platformOrg.name})`);
+  logger.info(`✅ Root platform workspace ready (${platformOrg.name})`);
 
-  // 3. Provision Super Admin Account
-  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@advmen.io';
+  // 2. Provision / Upsert Super Admin Accounts
+  const superAdminEmails = [
+    (process.env.SUPER_ADMIN_EMAIL || 'dwivediankit768@gmail.com').toLowerCase(),
+    'admin@advmen.io',
+  ];
   const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || '@TOO323834d';
   const superAdminPasswordHash = await bcrypt.hash(superAdminPassword, 12);
 
-  const superAdminUser = {
-    organizationId: 'org_advmen_platform',
-    name: 'Ankit Dwivedi',
-    email: superAdminEmail,
-    normalizedEmail: superAdminEmail.toLowerCase(),
-    passwordHash: superAdminPasswordHash,
-    role: USER_ROLES.SUPER_ADMIN,
-    permissions: ROLE_DEFAULT_PERMISSIONS[USER_ROLES.SUPER_ADMIN],
-    avatarUrl: '',
-    isActive: true,
-    isEmailVerified: true,
-  };
-
-  await UserModel.findOneAndUpdate(
-    { normalizedEmail: superAdminUser.normalizedEmail },
-    { $set: superAdminUser },
-    { upsert: true, new: true }
-  );
-  logger.info(`👑 Super Admin provisioned: ${superAdminEmail} with full platform clearance.`);
+  for (const email of superAdminEmails) {
+    const existing = await UserModel.findOne({ normalizedEmail: email });
+    if (!existing) {
+      await UserModel.create({
+        organizationId: 'org_advmen_platform',
+        name: email.includes('ankit') ? 'Ankit Dwivedi' : 'Root Super Administrator',
+        email,
+        normalizedEmail: email,
+        passwordHash: superAdminPasswordHash,
+        role: USER_ROLES.SUPER_ADMIN,
+        permissions: ROLE_DEFAULT_PERMISSIONS[USER_ROLES.SUPER_ADMIN],
+        avatarUrl: '',
+        isActive: true,
+        isEmailVerified: true,
+      });
+      logger.info(`👑 Super Admin provisioned: ${email}`);
+    } else if (existing.role !== USER_ROLES.SUPER_ADMIN) {
+      existing.role = USER_ROLES.SUPER_ADMIN;
+      existing.permissions = ROLE_DEFAULT_PERMISSIONS[USER_ROLES.SUPER_ADMIN];
+      await existing.save();
+    }
+  }
 
   logger.info('🎉 Production database ready.');
 }

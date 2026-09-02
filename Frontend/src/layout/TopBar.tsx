@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSessionStore, ROLE_DASHBOARDS } from '@/stores/sessionStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useNotificationStore, AppNotification } from '@/stores/notificationStore';
 import { organizationsApi, TenantOrgDto } from '@/features/admin/api/organizationsApi';
 
 import { UserProfileDrawer } from '@/components/patterns/UserProfileDrawer';
@@ -16,6 +17,12 @@ import {
   LogOut,
   User,
   ExternalLink,
+  DollarSign,
+  PhoneCall,
+  CheckCircle2,
+  FileText,
+  Check,
+  Trash2,
 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/utils/cn';
@@ -23,12 +30,52 @@ import { cn } from '@/utils/cn';
 export function TopBar() {
   const { user, switchOrganization, logout } = useSessionStore();
   const { setCommandBarOpen, setMobileSidebarOpen, addToast } = useUIStore();
+  const { notifications, markAsRead, markAllAsRead, clearAll } = useNotificationStore();
   const navigate = useNavigate();
   const [orgMenuOpen, setOrgMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
   const [organizations, setOrganizations] = useState<TenantOrgDto[]>([]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const getNotificationIcon = (type: AppNotification['type']) => {
+    switch (type) {
+      case 'deal':
+        return <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+      case 'invoice':
+        return <DollarSign className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+      case 'lead':
+        return <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />;
+      case 'call':
+        return <PhoneCall className="w-3.5 h-3.5 text-indigo-600 shrink-0" />;
+      case 'task':
+        return <CheckCircle2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />;
+      case 'proposal':
+        return <FileText className="w-3.5 h-3.5 text-purple-600 shrink-0" />;
+      case 'sla':
+        return <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />;
+      default:
+        return <Bell className="w-3.5 h-3.5 text-neutral-600 shrink-0" />;
+    }
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return date.toLocaleDateString();
+    } catch {
+      return 'Recent';
+    }
+  };
 
   useEffect(() => {
     organizationsApi.getOrganizations().then((orgs) => {
@@ -167,38 +214,106 @@ export function TopBar() {
           <Search className="w-4 h-4" />
         </button>
 
-        {/* Real-Time Notification Bell */}
+        {/* Real-Time Live Notification Bell */}
         <div className="relative">
           <button
             onClick={() => setNotificationsOpen(!notificationsOpen)}
             className="p-2 rounded-md hover:bg-neutral-100 text-neutral-600 transition-colors relative"
-            title="SLA Alerts & Notifications"
+            title="Live Workspace Notifications"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {notificationsOpen && (
             <>
               <div onClick={() => setNotificationsOpen(false)} className="fixed inset-0 z-40" />
-              <div className="absolute right-0 mt-1.5 w-80 skeuo-raised-3 bg-white rounded-md border border-neutral-200 p-fib-13 z-50 shadow-xl space-y-fib-8">
-                <div className="flex items-center justify-between border-b border-neutral-100 pb-fib-5">
-                  <span className="text-xs font-bold text-neutral-900">SLA Breach Alerts</span>
-                  <span className="text-[10px] px-fib-5 py-0.2 bg-rose-100 text-rose-700 rounded font-bold">1 Urgent</span>
-                </div>
-                <div className="p-fib-8 rounded bg-rose-50 border border-rose-200 text-xs space-y-fib-3">
-                  <div className="flex items-center gap-fib-5 text-rose-800 font-semibold">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                    <span>Apex Capital SLA Risk</span>
+              <div className="absolute right-0 mt-1.5 w-80 sm:w-96 skeuo-raised-3 bg-white rounded-xl border border-neutral-200 p-3 z-50 shadow-2xl space-y-2 animate-in fade-in zoom-in-95 max-h-[460px] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-neutral-900">Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded-full font-bold">
+                        {unreadCount} new
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-rose-700">Follow-up callback due in 45m before SLA violation occurs.</p>
+                  {notifications.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => markAllAsRead()}
+                          className="text-[11px] text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => clearAll()}
+                        className="text-[11px] text-neutral-400 hover:text-rose-600 transition-colors"
+                        title="Clear notifications"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="p-fib-8 rounded bg-violet-50 border border-violet-200 text-xs space-y-fib-3">
-                  <div className="flex items-center gap-fib-5 text-violet-800 font-semibold">
-                    <Sparkles className="w-3.5 h-3.5 text-violet-600 shrink-0" />
-                    <span>AI Lead Scoring Update</span>
-                  </div>
-                  <p className="text-[11px] text-violet-700">Sarah Jenkins intent upgraded to Hot (94 Score).</p>
+
+                {/* Notifications List */}
+                <div className="overflow-y-auto space-y-1.5 flex-1 pr-1 custom-scrollbar">
+                  {notifications.length === 0 ? (
+                    <div className="py-8 text-center space-y-1">
+                      <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center mx-auto text-neutral-400">
+                        <Check className="w-4 h-4" />
+                      </div>
+                      <p className="text-xs font-semibold text-neutral-800">All caught up!</p>
+                      <p className="text-[11px] text-neutral-400">No active alerts or events in this workspace.</p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          markAsRead(n.id);
+                          if (n.link) {
+                            navigate(n.link);
+                            setNotificationsOpen(false);
+                          }
+                        }}
+                        className={cn(
+                          'p-2.5 rounded-lg border transition-all text-xs space-y-1 cursor-pointer select-none relative group',
+                          !n.read
+                            ? 'bg-blue-50/50 border-blue-100 hover:bg-blue-50 hover:border-blue-200'
+                            : 'bg-neutral-50/50 border-neutral-100 hover:bg-neutral-50 hover:border-neutral-200 text-neutral-600'
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-1.5 font-semibold text-neutral-900">
+                            {getNotificationIcon(n.type)}
+                            <span className="truncate">{n.title}</span>
+                          </div>
+                          <span className="text-[10px] text-neutral-400 shrink-0 font-mono">
+                            {formatTimeAgo(n.timestamp)}
+                          </span>
+                        </div>
+                        {n.message && (
+                          <p className="text-[11px] text-neutral-600 leading-snug line-clamp-2">
+                            {n.message}
+                          </p>
+                        )}
+                        {!n.read && (
+                          <span className="absolute top-2.5 right-2 w-1.5 h-1.5 rounded-full bg-blue-600" />
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </>

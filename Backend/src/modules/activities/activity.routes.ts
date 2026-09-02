@@ -10,6 +10,12 @@ export const activityRouter = Router();
 activityRouter.use(authMiddleware, tenantMiddleware);
 
 activityRouter.get(
+  '/',
+  requirePermission(PERMISSION_KEYS.ACTIVITY_VIEW),
+  activityController.getRecentActivities
+);
+
+activityRouter.get(
   '/:recordId',
   requirePermission(PERMISSION_KEYS.ACTIVITY_VIEW),
   activityController.getRecordTimeline

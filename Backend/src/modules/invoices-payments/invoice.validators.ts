@@ -3,11 +3,23 @@ import { z } from 'zod';
 export const CreateInvoiceSchema = z.object({
   proposalId: z.string().optional(),
   dealId: z.string().optional(),
-  company: z.string().min(2, 'Company name is required'),
+  company: z.string().min(1, 'Company name is required'),
+  recipientName: z.string().optional(),
   recipientEmail: z.string().email('Valid recipient email is required'),
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.union([z.number(), z.string().transform(Number)]).optional().default(25000),
   currency: z.string().optional().default('USD'),
-  dueDate: z.string().datetime(),
+  lineItems: z.array(z.any()).optional(),
+  dueDate: z
+    .union([z.string(), z.date()])
+    .optional()
+    .transform((val) => {
+      if (!val) {
+        const d = new Date();
+        d.setDate(d.getDate() + 14);
+        return d.toISOString();
+      }
+      return new Date(val).toISOString();
+    }),
 });
 
 export const RecordPaymentSchema = z.object({

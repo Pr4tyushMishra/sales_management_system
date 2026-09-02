@@ -30,6 +30,25 @@ export interface EmailDraftResponse {
   };
 }
 
+export interface PipelineAuditResponse {
+  recommendations: Array<{
+    id: string;
+    title: string;
+    intentLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+    content: string;
+    keyPoints: string[];
+    suggestedAction: string;
+  }>;
+  meta: {
+    totalLeads: number;
+    totalDeals: number;
+    totalInvoices: number;
+    latencyMs: number;
+    tokens: number;
+    model: string;
+  };
+}
+
 export const aiApi = {
   generateLeadSummary: async (leadId: string): Promise<LeadSummaryResponse> => {
     return await withFallback(
@@ -65,5 +84,9 @@ export const aiApi = {
       },
       'AI Email Generation'
     );
+  },
+
+  runPipelineAudit: async (): Promise<PipelineAuditResponse> => {
+    return await apiClient.post<PipelineAuditResponse>('/ai/pipeline-audit', {});
   },
 };

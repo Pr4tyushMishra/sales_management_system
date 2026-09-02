@@ -25,6 +25,13 @@ export function useDeals() {
         message: `${newDeal.title} added to pipeline.`,
       });
     },
+    onError: (err: any) => {
+      addToast({
+        type: 'danger',
+        title: 'Deal Creation Failed',
+        message: err?.message || 'Could not save deal to database.',
+      });
+    },
   });
 
   const moveStageMutation = useMutation({
@@ -53,6 +60,28 @@ export function useDeals() {
     },
   });
 
+  const deleteDealMutation = useMutation({
+    mutationFn: (id: string) => dealApi.deleteDeal(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData<Deal[]>(['deals'], (old = []) =>
+        old.filter((d) => d.id !== deletedId)
+      );
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      addToast({
+        type: 'success',
+        title: 'Deal Removed',
+        message: 'Opportunity deleted from pipeline.',
+      });
+    },
+    onError: (err: any) => {
+      addToast({
+        type: 'danger',
+        title: 'Delete Failed',
+        message: err?.message || 'Could not delete deal.',
+      });
+    },
+  });
+
   return {
     deals: dealsQuery.data || [],
     isLoading: dealsQuery.isLoading,
@@ -61,5 +90,7 @@ export function useDeals() {
     createDeal: createDealMutation.mutateAsync,
     isCreating: createDealMutation.isPending,
     moveStage: (id: string, stage: DealStage) => moveStageMutation.mutateAsync({ id, stage }),
+    deleteDeal: deleteDealMutation.mutateAsync,
+    isDeleting: deleteDealMutation.isPending,
   };
 }

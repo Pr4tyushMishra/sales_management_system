@@ -39,6 +39,12 @@ export class InvoiceController {
     const metrics = await invoiceService.getRevenueMetrics(organizationId);
     ApiResponse.success(res, metrics, 200, undefined, 'Revenue metrics retrieved');
   }
+
+  async deleteInvoice(req: Request, res: Response): Promise<void> {
+    const organizationId = req.organizationId!;
+    await invoiceService.deleteInvoice(organizationId, req.params.id);
+    ApiResponse.success(res, { deleted: true }, 200, undefined, 'Invoice deleted successfully');
+  }
 }
 
 export const invoiceController = new InvoiceController();

@@ -18,6 +18,14 @@ export class ActivityRepository extends BaseTenantRepository<IActivity> {
       .limit(limit)
       .lean();
   }
+
+  async getRecentActivities(organizationId: string, limit: number = 30) {
+    return this.model
+      .find({ organizationId })
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .lean();
+  }
 }
 
 export const activityRepository = new ActivityRepository();
@@ -113,6 +121,10 @@ export class ActivityService {
 
   async getTimeline(organizationId: string, recordId: string) {
     return activityRepository.getRecordTimeline(organizationId, recordId);
+  }
+
+  async getRecentActivities(organizationId: string, limit: number = 30) {
+    return activityRepository.getRecentActivities(organizationId, limit);
   }
 }
 

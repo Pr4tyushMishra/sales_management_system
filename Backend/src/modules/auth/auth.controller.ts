@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { authService } from './auth.service.js';
 import { ApiResponse } from '../../shared/response/ApiResponse.js';
+import { AppError } from '../../shared/errors/AppError.js';
 import { env } from '../../config/env.js';
 
 export class AuthController {
@@ -13,6 +14,13 @@ export class AuthController {
       secure: env.NODE_ENV === 'production',
       sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000, // 15 mins
+    });
+
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     ApiResponse.created(res, result, 'Organization workspace and admin account created successfully');
@@ -28,11 +36,22 @@ export class AuthController {
       maxAge: 15 * 60 * 1000,
     });
 
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     ApiResponse.success(res, result, 200, undefined, 'Authentication successful');
   }
 
   async refreshToken(req: Request, res: Response): Promise<void> {
-    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+    const refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
+    if (!refreshToken) {
+      throw AppError.unauthorized('No active session or refresh token found');
+    }
+
     const tokens = await authService.refreshToken(refreshToken);
 
     res.cookie('accessToken', tokens.accessToken, {
@@ -42,18 +61,30 @@ export class AuthController {
       maxAge: 15 * 60 * 1000,
     });
 
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     ApiResponse.success(res, { tokens }, 200, undefined, 'Token rotated successfully');
   }
 
   async logout(req: Request, res: Response): Promise<void> {
     const userId = req.user?.id;
-    const refreshToken = req.body.refreshToken;
+    const refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
 
     if (userId) {
       await authService.logout(userId, refreshToken);
     }
 
     res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
+    res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
       sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
