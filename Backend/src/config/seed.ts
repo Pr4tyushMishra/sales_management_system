@@ -11,6 +11,7 @@ import { InvoiceModel } from '../modules/invoices-payments/invoice.model.js';
 import { CallModel } from '../modules/calls/call.model.js';
 import { ActivityModel } from '../modules/activities/activity.model.js';
 import { USER_ROLES, ROLE_DEFAULT_PERMISSIONS } from './constants.js';
+import { env } from './env.js';
 import { logger } from '../shared/logger/logger.js';
 
 export async function seedDatabase(forceClean: boolean = false): Promise<void> {
