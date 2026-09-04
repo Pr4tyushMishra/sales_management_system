@@ -64,44 +64,45 @@ export async function seedDatabase(forceClean: boolean = false): Promise<void> {
   );
   logger.info(`✅ Root platform workspace ready (${platformOrg.name})`);
 
-  // 2. Provision / Upsert Sole Super Admin Account
-  const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || 'prabhas.advmen@gmail.com').toLowerCase();
-  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Advmen@9090';
-  const superAdminPasswordHash = await bcrypt.hash(superAdminPassword, 12);
+  // 2. Provision / Upsert Sole Super Admin Account (from Environment Variables)
+  const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || env.SUPER_ADMIN_EMAIL || '').toLowerCase().trim();
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || env.SUPER_ADMIN_PASSWORD || '';
 
-  // Clean up any other super admin or legacy accounts to ensure only ONE super admin exists
-  await UserModel.deleteMany({
-    $or: [
-      { role: USER_ROLES.SUPER_ADMIN, normalizedEmail: { $ne: superAdminEmail } },
-      { normalizedEmail: 'dwivediankit768@gmail.com' },
-      { normalizedEmail: 'admin@advmen.io' },
-    ],
-  });
+  if (superAdminEmail && superAdminPassword) {
+    const superAdminPasswordHash = await bcrypt.hash(superAdminPassword, 12);
 
-  const existing = await UserModel.findOne({ normalizedEmail: superAdminEmail });
-  if (!existing) {
-    await UserModel.create({
-      organizationId: 'org_advmen_platform',
-      name: 'Prabhas',
-      email: superAdminEmail,
-      normalizedEmail: superAdminEmail,
-      passwordHash: superAdminPasswordHash,
+    // Clean up any other super admin or legacy accounts to ensure only the designated super admin exists
+    await UserModel.deleteMany({
       role: USER_ROLES.SUPER_ADMIN,
-      permissions: ROLE_DEFAULT_PERMISSIONS[USER_ROLES.SUPER_ADMIN],
-      avatarUrl: '',
-      isActive: true,
-      isEmailVerified: true,
+      normalizedEmail: { $ne: superAdminEmail },
     });
-    logger.info(`👑 Sole Super Admin provisioned: ${superAdminEmail}`);
+
+    const existing = await UserModel.findOne({ normalizedEmail: superAdminEmail });
+    if (!existing) {
+      await UserModel.create({
+        organizationId: 'org_advmen_platform',
+        name: 'Super Administrator',
+        email: superAdminEmail,
+        normalizedEmail: superAdminEmail,
+        passwordHash: superAdminPasswordHash,
+        role: USER_ROLES.SUPER_ADMIN,
+        permissions: ROLE_DEFAULT_PERMISSIONS[USER_ROLES.SUPER_ADMIN],
+        avatarUrl: '',
+        isActive: true,
+        isEmailVerified: true,
+      });
+      logger.info(`👑 Sole Super Admin provisioned from environment: ${superAdminEmail}`);
+    } else {
+      existing.passwordHash = superAdminPasswordHash;
+      existing.role = USER_ROLES.SUPER_ADMIN;
+      existing.permissions = ROLE_DEFAULT_PERMISSIONS[USER_ROLES.SUPER_ADMIN];
+      existing.isActive = true;
+      existing.isEmailVerified = true;
+      await existing.save();
+      logger.info(`👑 Sole Super Admin credentials refreshed from environment: ${superAdminEmail}`);
+    }
   } else {
-    existing.passwordHash = superAdminPasswordHash;
-    existing.role = USER_ROLES.SUPER_ADMIN;
-    existing.permissions = ROLE_DEFAULT_PERMISSIONS[USER_ROLES.SUPER_ADMIN];
-    existing.name = 'Prabhas';
-    existing.isActive = true;
-    existing.isEmailVerified = true;
-    await existing.save();
-    logger.info(`👑 Sole Super Admin credentials refreshed: ${superAdminEmail}`);
+    logger.info('ℹ️ SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD not set in environment; skipping super admin upsert.');
   }
 
   logger.info('🎉 Production database ready.');
