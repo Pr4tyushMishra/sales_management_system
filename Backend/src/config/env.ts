@@ -16,6 +16,9 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   COOKIE_SECRET: z.string().default('advmen_cookie_secure_signature_secret_key_2026'),
 
+  SUPER_ADMIN_EMAIL: z.string().default('prabhas.advmen@gmail.com'),
+  SUPER_ADMIN_PASSWORD: z.string().default('Advmen@9090.'),
+
   MONGODB_URI: z.string().default('mongodb+srv://admin:salesos2026@cluster0.mongodb.net/advmen_salesos?retryWrites=true&w=majority'),
   REDIS_HOST: z.string().default('localhost'),
 

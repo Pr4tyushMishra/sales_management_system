@@ -56,8 +56,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
 const DEFAULT_USERS: Record<UserRole, UserSession> = {
   SUPER_ADMIN: {
     id: 'usr_super_01',
-    name: 'Ankit Dwivedi',
-    email: 'dwivediankit768@gmail.com',
+    name: 'Prabhas',
+    email: 'prabhas.advmen@gmail.com',
     role: 'SUPER_ADMIN',
     organizationId: 'org_advmen_platform',
     organizationName: 'ADVMEN Platform Ops',
