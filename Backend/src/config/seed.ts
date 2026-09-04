@@ -66,7 +66,7 @@ export async function seedDatabase(forceClean: boolean = false): Promise<void> {
 
   // 2. Provision / Upsert Sole Super Admin Account
   const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL || 'prabhas.advmen@gmail.com').toLowerCase();
-  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Advmen@9090.';
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Advmen@9090';
   const superAdminPasswordHash = await bcrypt.hash(superAdminPassword, 12);
 
   // Clean up any other super admin or legacy accounts to ensure only ONE super admin exists
