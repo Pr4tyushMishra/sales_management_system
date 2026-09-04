@@ -121,7 +121,7 @@ export class OrganizationService {
       },
       settings: input.settings || {
         timezone: 'UTC',
-        currency: 'USD',
+        currency: 'INR',
         leadResponseSlaMinutes: 15,
         allowTelephonyRecording: true,
       },

@@ -7,7 +7,7 @@ import { useTasks } from '../tasks/hooks/useTasks';
 import {
   Kanban,
   PhoneCall,
-  DollarSign,
+  IndianRupee,
   Award,
   CheckCircle,
   Calendar,
@@ -30,14 +30,14 @@ export function SalesRepDashboard() {
         <div>
           <div className="flex items-center gap-fib-8 mb-1">
             <h1 className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
-              {user.name || 'Sales Rep'}'s Pipeline Dashboard
+              Sales Representative Workspace
             </h1>
-            <span className="text-[10px] font-bold px-fib-8 py-0.5 rounded-pill bg-green-100 text-green-800 border border-green-300 font-mono">
-              Account Executive
+            <span className="text-[10px] font-bold px-fib-8 py-0.5 rounded-pill bg-blue-100 text-blue-800 border border-blue-300 font-mono">
+              Deal Execution
             </span>
           </div>
           <p className="text-xs text-neutral-500">
-            My active pipeline, high-intent deal closing tasks, and Next-Best-Action AI recommendations.
+            Welcome back, {user.name}. Here is your deal velocity, scheduled calls, and action items.
           </p>
         </div>
 
@@ -66,17 +66,17 @@ export function SalesRepDashboard() {
         <WidgetBoundary name="kpi-rep-pipeline">
           <KPICard
             label="My Active Pipeline"
-            value={`$${myDealsValue.toLocaleString()}`}
+            value={`₹${myDealsValue.toLocaleString('en-IN')}`}
             subtext={`${deals.length} Active Deals`}
             accent="blue"
-            icon={<DollarSign className="w-4 h-4" />}
+            icon={<IndianRupee className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
         <WidgetBoundary name="kpi-rep-attainment">
           <KPICard
             label="Won Contracts"
-            value={`$${deals.filter((d) => d.stage === 'WON').reduce((s, d) => s + (d.value || 0), 0).toLocaleString()}`}
+            value={`₹${deals.filter((d) => d.stage === 'WON').reduce((s, d) => s + (d.value || 0), 0).toLocaleString('en-IN')}`}
             subtext="Closed revenue"
             accent="green"
             icon={<Award className="w-4 h-4" />}
@@ -89,7 +89,7 @@ export function SalesRepDashboard() {
             value={`${deals.filter((d) => d.stage === 'NEGOTIATION').length} Deals`}
             subtext="High closing probability"
             accent="green"
-            icon={<DollarSign className="w-4 h-4" />}
+            icon={<IndianRupee className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
@@ -129,7 +129,7 @@ export function SalesRepDashboard() {
                       <span className="text-[11px] text-neutral-500">{deal.company}</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-neutral-900 block">${deal.value.toLocaleString()}</span>
+                      <span className="font-bold text-neutral-900 block">₹{deal.value.toLocaleString('en-IN')}</span>
                       <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-blue-100 text-blue-800">
                         {deal.stage}
                       </span>

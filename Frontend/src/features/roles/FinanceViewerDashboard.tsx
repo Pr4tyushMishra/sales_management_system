@@ -9,7 +9,7 @@ import { useUIStore } from '@/stores/uiStore';
 import {
   CreditCard,
   CheckCircle,
-  DollarSign,
+  IndianRupee,
   Calendar,
   Building2,
   Download,
@@ -34,9 +34,9 @@ export function FinanceViewerDashboard() {
     },
     {
       id: 'company',
-      header: 'Billed Company',
+      header: 'Client / Organization',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1.5 font-medium text-neutral-800">
+        <div className="flex items-center gap-fib-5 text-neutral-800 font-medium">
           <Building2 className="w-3.5 h-3.5 text-neutral-400" />
           <span>{row.company}</span>
         </div>
@@ -48,7 +48,7 @@ export function FinanceViewerDashboard() {
       align: 'right',
       cell: ({ row }) => (
         <span className="font-bold text-neutral-900 tabular-nums">
-          ${row.amount.toLocaleString()} {row.currency}
+          ₹{row.amount.toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -120,7 +120,7 @@ export function FinanceViewerDashboard() {
         <WidgetBoundary name="kpi-fin-collected">
           <KPICard
             label="Total Collected"
-            value={`$${invoices.filter((i) => i.status === 'PAID').reduce((s, i) => s + i.amount, 0).toLocaleString()}`}
+            value={`₹${invoices.filter((i) => i.status === 'PAID').reduce((s, i) => s + i.amount, 0).toLocaleString('en-IN')}`}
             subtext="Settled payments"
             accent="green"
             icon={<CheckCircle className="w-4 h-4" />}
@@ -130,10 +130,10 @@ export function FinanceViewerDashboard() {
         <WidgetBoundary name="kpi-fin-receivables">
           <KPICard
             label="Outstanding Receivables"
-            value={`$${invoices.filter((i) => i.status === 'SENT' || i.status === 'OVERDUE').reduce((s, i) => s + i.amount, 0).toLocaleString()}`}
+            value={`₹${invoices.filter((i) => i.status === 'SENT' || i.status === 'OVERDUE').reduce((s, i) => s + i.amount, 0).toLocaleString('en-IN')}`}
             subtext={`${invoices.filter((i) => i.status === 'SENT' || i.status === 'OVERDUE').length} Accounts`}
             accent="blue"
-            icon={<DollarSign className="w-4 h-4" />}
+            icon={<IndianRupee className="w-4 h-4" />}
           />
         </WidgetBoundary>
 

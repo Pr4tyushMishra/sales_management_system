@@ -7,7 +7,7 @@ export const CreateInvoiceSchema = z.object({
   recipientName: z.string().optional(),
   recipientEmail: z.string().email('Valid recipient email is required'),
   amount: z.union([z.number(), z.string().transform(Number)]).optional().default(25000),
-  currency: z.string().optional().default('USD'),
+  currency: z.string().optional().default('INR'),
   lineItems: z.array(z.any()).optional(),
   dueDate: z
     .union([z.string(), z.date()])

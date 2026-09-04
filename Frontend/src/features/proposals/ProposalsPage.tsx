@@ -11,7 +11,7 @@ import { PermissionGate } from '@/components/system/PermissionGate';
 import { useProposals } from './hooks/useProposals';
 import {
   FileText,
-  DollarSign,
+  IndianRupee,
   Send,
   CheckCircle,
   Plus,
@@ -31,11 +31,11 @@ export function ProposalsPage() {
   const [newCompany, setNewCompany] = useState('');
   const [newRecipientName, setNewRecipientName] = useState('');
   const [newRecipientEmail, setNewRecipientEmail] = useState('');
-  const [newAmount, setNewAmount] = useState('75000');
+  const [newAmount, setNewAmount] = useState('45000');
 
-  const handleSendProposal = async (prop: Proposal) => {
-    await updateStatus({ id: prop.id, status: 'SENT' });
-    if (selectedProposal && selectedProposal.id === prop.id) {
+  const handleSendProposal = async (proposal: Proposal) => {
+    await updateStatus({ id: proposal.id, status: 'SENT' });
+    if (selectedProposal && selectedProposal.id === proposal.id) {
       setSelectedProposal({ ...selectedProposal, status: 'SENT' });
     }
   };
@@ -45,11 +45,11 @@ export function ProposalsPage() {
     if (!newCompany || !newAmount) return;
 
     await createProposal({
-      dealTitle: newTitle || `${newCompany} Expansion Contract`,
+      dealTitle: newTitle || 'Standard Commercial Agreement',
       company: newCompany,
       recipientName: newRecipientName || 'Decision Maker',
-      recipientEmail: newRecipientEmail || `procurement@${newCompany.toLowerCase().replace(/\s+/g, '')}.com`,
-      amount: Number(newAmount) || 75000,
+      recipientEmail: newRecipientEmail || `contact@${newCompany.toLowerCase().replace(/\s+/g, '')}.com`,
+      amount: Number(newAmount) || 45000,
       validUntil: '2026-10-31',
     });
 
@@ -91,7 +91,7 @@ export function ProposalsPage() {
       align: 'right',
       cell: ({ row }) => (
         <span className="font-bold text-neutral-900 tabular-nums">
-          ${row.amount.toLocaleString()}
+          ₹{row.amount.toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -177,10 +177,10 @@ export function ProposalsPage() {
         <WidgetBoundary name="kpi-proposals-value">
           <KPICard
             label="Proposal Pipeline Value"
-            value={`$${proposals.reduce((s, p) => s + p.amount, 0).toLocaleString()}`}
+            value={`₹${proposals.reduce((s, p) => s + p.amount, 0).toLocaleString('en-IN')}`}
             subtext="Active contract value"
             accent="green"
-            icon={<DollarSign className="w-4 h-4" />}
+            icon={<IndianRupee className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
@@ -250,9 +250,9 @@ export function ProposalsPage() {
             onChange={(e) => setNewRecipientEmail(e.target.value)}
           />
           <Input
-            label="Proposed Amount (USD) *"
+            label="Proposed Amount (INR) *"
             type="number"
-            leftIcon={<DollarSign className="w-4 h-4" />}
+            leftIcon={<IndianRupee className="w-4 h-4" />}
             value={newAmount}
             onChange={(e) => setNewAmount(e.target.value)}
             required
@@ -296,7 +296,7 @@ export function ProposalsPage() {
                   Total Contract Value
                 </span>
                 <span className="text-3xl font-extrabold text-neutral-900 tabular-nums">
-                  ${selectedProposal.amount.toLocaleString()}
+                  ₹{selectedProposal.amount.toLocaleString('en-IN')}
                 </span>
               </div>
               <Button
@@ -321,7 +321,7 @@ export function ProposalsPage() {
                     <span className="text-neutral-500 text-[11px]">50 Rep Seats • High Volume Voice & WhatsApp</span>
                   </div>
                   <span className="font-bold text-neutral-900 tabular-nums">
-                    ${(selectedProposal.amount * 0.8).toLocaleString()}
+                    ₹{(selectedProposal.amount * 0.8).toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between pt-fib-8">
@@ -330,7 +330,7 @@ export function ProposalsPage() {
                     <span className="text-neutral-500 text-[11px]">99.99% Uptime SLA • 15m Emergency Bridge</span>
                   </div>
                   <span className="font-bold text-neutral-900 tabular-nums">
-                    ${(selectedProposal.amount * 0.2).toLocaleString()}
+                    ₹{(selectedProposal.amount * 0.2).toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>

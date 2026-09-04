@@ -33,8 +33,8 @@ export function CommandBar() {
 
   const sampleResults = [
     { type: 'Lead', title: 'Sarah Jenkins — Apex Capital', subtitle: 'Score: 94 (Hot) • Last active 2h ago', path: '/leads' },
-    { type: 'Deal', title: 'Enterprise CRM Overhaul — $120,000', subtitle: 'Stage: Negotiation • Health: Healthy', path: '/pipeline' },
-    { type: 'Account', title: 'Nordic AI Solutions', subtitle: '3 Contacts • $110,000 Opportunity', path: '/leads' },
+    { type: 'Deal', title: 'Enterprise CRM Overhaul — ₹1,20,000', subtitle: 'Stage: Negotiation • Health: Healthy', path: '/deals' },
+    { type: 'Account', title: 'Nordic AI Solutions', subtitle: '3 Contacts • ₹1,10,000 Opportunity', path: '/leads' },
   ];
 
   const handleSelect = (path: string) => {

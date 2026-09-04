@@ -14,7 +14,7 @@ export const CreateOrganizationSchema = z.object({
   settings: z
     .object({
       timezone: z.string().default('UTC'),
-      currency: z.string().default('USD'),
+      currency: z.string().default('INR'),
       leadResponseSlaMinutes: z.number().default(15),
       allowTelephonyRecording: z.boolean().default(true),
     })

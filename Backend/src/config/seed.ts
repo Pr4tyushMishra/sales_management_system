@@ -52,7 +52,7 @@ export async function seedDatabase(forceClean: boolean = false): Promise<void> {
     },
     settings: {
       timezone: 'UTC',
-      currency: 'USD',
+      currency: 'INR',
       leadResponseSlaMinutes: 15,
       allowTelephonyRecording: true,
     },

@@ -19,7 +19,7 @@ export const CreateProposalSchema = z.object({
     .optional(),
   taxRate: z.number().min(0).optional().default(0),
   discount: z.number().min(0).optional().default(0),
-  currency: z.string().optional().default('USD'),
+  currency: z.string().optional().default('INR'),
   validUntil: z
     .union([z.string(), z.date()])
     .optional()

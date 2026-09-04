@@ -34,7 +34,7 @@ function normalizeInvoice(raw: any): Invoice {
     leadId: raw.leadId,
     company: raw.company || raw.recipientName || 'Enterprise Client',
     amount: typeof raw.amount === 'number' ? raw.amount : 25000,
-    currency: raw.currency || 'USD',
+    currency: raw.currency || 'INR',
     status: raw.status || 'SENT',
     dueDate: raw.dueDate ? new Date(raw.dueDate).toLocaleDateString() : 'Net 30',
     paidAt: raw.paidAt ? new Date(raw.paidAt).toLocaleDateString() : undefined,

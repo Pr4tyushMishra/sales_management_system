@@ -20,7 +20,7 @@ import {
   Download,
   Users,
   Flame,
-  DollarSign,
+  IndianRupee,
   Clock,
   Building2,
   Trash2,
@@ -142,7 +142,7 @@ export function LeadsPage() {
       align: 'right',
       cell: ({ row }) => (
         <span className="font-bold text-neutral-900 tabular-nums">
-          ${row.estimatedValue.toLocaleString()}
+          ₹{row.estimatedValue.toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -250,10 +250,10 @@ export function LeadsPage() {
         <WidgetBoundary name="kpi-pipeline-value">
           <KPICard
             label="Total Pipeline Value"
-            value={`$${leads.reduce((s, l) => s + l.estimatedValue, 0).toLocaleString()}`}
+            value={`₹${leads.reduce((s, l) => s + l.estimatedValue, 0).toLocaleString('en-IN')}`}
             subtext="Estimated value"
             accent="green"
-            icon={<DollarSign className="w-4 h-4" />}
+            icon={<IndianRupee className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
@@ -416,7 +416,7 @@ export function LeadsPage() {
 
               <div className="grid grid-cols-2 gap-fib-13">
                 <Input
-                  label="Estimated Deal Value ($)"
+                  label="Estimated Deal Value (₹)"
                   type="number"
                   value={newLeadValue}
                   onChange={(e) => setNewLeadValue(e.target.value)}

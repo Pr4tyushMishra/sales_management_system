@@ -57,7 +57,7 @@ const InvoiceSchema = new Schema<IInvoice>(
     },
     currency: {
       type: String,
-      default: 'USD',
+      default: 'INR',
     },
     status: {
       type: String,

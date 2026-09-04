@@ -8,7 +8,7 @@ import {
   Kanban,
   AlertTriangle,
   Award,
-  DollarSign,
+  IndianRupee,
   Target,
   CheckCircle,
   FileText,
@@ -38,7 +38,7 @@ export function SalesManagerDashboard() {
             </span>
           </div>
           <p className="text-xs text-neutral-500">
-            Pipeline health forecasting, quota attainment, high-value deal approvals, and SLA risk mitigation.
+            Real-time quota attainment, manager approval queue, and rep velocity tracking.
           </p>
         </div>
 
@@ -67,10 +67,10 @@ export function SalesManagerDashboard() {
         <WidgetBoundary name="kpi-team-forecast">
           <KPICard
             label="Weighted Pipeline Forecast"
-            value={`$${totalForecast.toLocaleString()}`}
+            value={`₹${totalForecast.toLocaleString('en-IN')}`}
             subtext={`${deals.length} Active Deals`}
             accent="green"
-            icon={<DollarSign className="w-4 h-4" />}
+            icon={<IndianRupee className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
@@ -87,7 +87,7 @@ export function SalesManagerDashboard() {
         <WidgetBoundary name="kpi-team-quota">
           <KPICard
             label="Won Revenue"
-            value={`$${deals.filter((d) => d.stage === 'WON').reduce((s, d) => s + (d.value || 0), 0).toLocaleString()}`}
+            value={`₹${deals.filter((d) => d.stage === 'WON').reduce((s, d) => s + (d.value || 0), 0).toLocaleString('en-IN')}`}
             subtext="Closed contracts"
             accent="blue"
             icon={<Award className="w-4 h-4" />}
@@ -128,7 +128,7 @@ export function SalesManagerDashboard() {
                     <div>
                       <div className="flex items-center gap-fib-8">
                         <span className="font-bold text-neutral-900">
-                          {prop.dealTitle || prop.company} (${prop.amount.toLocaleString()})
+                          {prop.dealTitle || prop.company} (₹{prop.amount.toLocaleString('en-IN')})
                         </span>
                         <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.2 rounded font-bold font-mono">
                           {prop.status}
@@ -173,7 +173,7 @@ export function SalesManagerDashboard() {
                 <FileText className="w-6 h-6 text-neutral-400 mx-auto" />
                 <span className="font-bold text-neutral-900 block">{deals.length} Active Deals</span>
                 <span className="text-[10px] text-neutral-500">
-                  Total Value: ${totalForecast.toLocaleString()}
+                  Total Value: ₹{totalForecast.toLocaleString('en-IN')}
                 </span>
               </div>
             </div>

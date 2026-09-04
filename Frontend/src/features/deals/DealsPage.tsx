@@ -11,7 +11,7 @@ import { WidgetBoundary } from '@/components/system/WidgetBoundary';
 import { PermissionGate } from '@/components/system/PermissionGate';
 import {
   Plus,
-  DollarSign,
+  IndianRupee,
   TrendingUp,
   Award,
   AlertCircle,
@@ -118,17 +118,17 @@ export function DealsPage() {
         <WidgetBoundary name="kpi-pipeline-active">
           <KPICard
             label="Active Pipeline Value"
-            value={`$${totalPipelineValue.toLocaleString()}`}
+            value={`₹${totalPipelineValue.toLocaleString('en-IN')}`}
             subtext={`${deals.length} Active Deals`}
             accent="blue"
-            icon={<DollarSign className="w-4 h-4" />}
+            icon={<IndianRupee className="w-4 h-4" />}
           />
         </WidgetBoundary>
 
         <WidgetBoundary name="kpi-won-revenue">
           <KPICard
             label="Closed Won Revenue"
-            value={`$${wonRevenue.toLocaleString()}`}
+            value={`₹${wonRevenue.toLocaleString('en-IN')}`}
             subtext={`${deals.filter((d) => d.stage === 'WON').length} Closed Won`}
             accent="green"
             icon={<Award className="w-4 h-4" />}
@@ -199,7 +199,7 @@ export function DealsPage() {
                   Contract Value
                 </span>
                 <span className="text-3xl font-extrabold text-neutral-900 tabular-nums">
-                  ${selectedDeal.value.toLocaleString()}
+                  ₹{selectedDeal.value.toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="text-right">
@@ -318,7 +318,7 @@ export function DealsPage() {
 
               <div className="grid grid-cols-2 gap-fib-13 items-start">
                 <Input
-                  label="Deal Value ($)"
+                  label="Deal Value (₹)"
                   type="number"
                   value={newDealValue}
                   onChange={(e) => setNewDealValue(e.target.value)}

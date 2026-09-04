@@ -1,6 +1,6 @@
 import { Deal, DealStage } from '@/types';
 import { cn } from '@/utils/cn';
-import { DollarSign, Building2, User, Trash2, ArrowRight } from 'lucide-react';
+import { IndianRupee, Building2, User, Trash2, ArrowRight } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 
 export interface KanbanColumn {
@@ -31,33 +31,34 @@ export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage, onDel
     green: 'border-t-green-500 bg-green-50/50',
     amber: 'border-t-amber-500 bg-amber-50/50',
     rose: 'border-t-rose-500 bg-rose-50/50',
-    neutral: 'border-t-neutral-400 bg-neutral-100/50',
+    neutral: 'border-t-neutral-400 bg-neutral-50/50',
   };
 
   return (
-    <div className="flex gap-fib-13 overflow-x-auto pb-fib-13 items-start select-none">
-      {stages.map((stage) => {
-        const stageDeals = getStageDeals(stage.id);
-        const stageTotal = getStageTotal(stage.id);
+    <div className="w-full overflow-x-auto pb-fib-21">
+      <div className="flex gap-fib-13 min-w-[1200px] items-start">
+        {stages.map((stage) => {
+          const stageDeals = getStageDeals(stage.id);
+          const stageTotal = getStageTotal(stage.id);
 
-        return (
-          <div
-            key={stage.id}
-            className="w-72 shrink-0 bg-neutral-100/80 rounded-lg border border-neutral-200/80 flex flex-col max-h-[calc(100vh-220px)]"
-          >
-            {/* Column Header */}
-            <div className={cn('p-fib-13 border-b border-neutral-200 border-t-2 rounded-t-lg bg-white', accentColors[stage.accent])}>
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-xs font-bold text-neutral-800 tracking-tight">{stage.label}</span>
-                <span className="text-[11px] font-semibold px-fib-8 py-0.2 rounded-pill bg-neutral-100 text-neutral-600 border border-neutral-200 tabular-nums">
-                  {stageDeals.length}
-                </span>
+          return (
+            <div
+              key={stage.id}
+              className="w-72 shrink-0 bg-neutral-100/80 rounded-lg border border-neutral-200/80 flex flex-col max-h-[calc(100vh-220px)]"
+            >
+              {/* Column Header */}
+              <div className={cn('p-fib-13 border-b border-neutral-200 border-t-2 rounded-t-lg bg-white', accentColors[stage.accent])}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="text-xs font-bold text-neutral-800 tracking-tight">{stage.label}</span>
+                  <span className="text-[11px] font-semibold px-fib-8 py-0.2 rounded-pill bg-neutral-100 text-neutral-600 border border-neutral-200 tabular-nums">
+                    {stageDeals.length}
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-neutral-900 tabular-nums flex items-center gap-1">
+                  <IndianRupee className="w-3 h-3 text-neutral-400" />
+                  ₹{stageTotal.toLocaleString('en-IN')}
+                </div>
               </div>
-              <div className="text-xs font-bold text-neutral-900 tabular-nums flex items-center gap-1">
-                <DollarSign className="w-3 h-3 text-neutral-400" />
-                ${stageTotal.toLocaleString()}
-              </div>
-            </div>
 
             {/* Column Cards Container */}
             <div className="p-fib-8 space-y-fib-8 overflow-y-auto flex-1">
@@ -112,7 +113,7 @@ export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage, onDel
                     {/* Footer: Value & Owner & Stage Fast Move Menu */}
                     <div className="pt-fib-8 border-t border-neutral-100 flex items-center justify-between text-xs">
                       <span className="font-bold text-neutral-900 tabular-nums">
-                        ${deal.value.toLocaleString()}
+                        ₹{deal.value.toLocaleString('en-IN')}
                       </span>
 
                       <div className="flex items-center gap-2">
@@ -148,6 +149,7 @@ export function KanbanBoard({ stages, deals, onDealClick, onMoveDealStage, onDel
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

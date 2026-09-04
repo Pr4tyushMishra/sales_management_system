@@ -98,7 +98,7 @@ const ProposalSchema = new Schema<IProposal>(
     },
     currency: {
       type: String,
-      default: 'USD',
+      default: 'INR',
     },
     status: {
       type: String,

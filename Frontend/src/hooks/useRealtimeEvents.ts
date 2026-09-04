@@ -27,12 +27,12 @@ export function useRealtimeEvents() {
       addToast({
         type: 'info',
         title: 'Deal Pipeline Updated',
-        message: `Deal moved to ${payload.newStage} ($${payload.value?.toLocaleString() || ''})`,
+        message: `Deal moved to ${payload.newStage} (₹${payload.value?.toLocaleString('en-IN') || ''})`,
       });
       addNotification({
         type: 'deal',
         title: 'Deal Moved in Pipeline',
-        message: `Deal stage shifted to ${payload.newStage} ($${payload.value?.toLocaleString() || ''})`,
+        message: `Deal stage shifted to ${payload.newStage} (₹${payload.value?.toLocaleString('en-IN') || ''})`,
         link: '/deals',
         severity: 'info',
       });
@@ -44,12 +44,12 @@ export function useRealtimeEvents() {
       addToast({
         type: 'success',
         title: '🎉 Deal Closed Won!',
-        message: `Revenue of $${payload.value?.toLocaleString() || '0'} added to workspace pipeline.`,
+        message: `Revenue of ₹${payload.value?.toLocaleString('en-IN') || '0'} added to workspace pipeline.`,
       });
       addNotification({
         type: 'deal',
         title: 'Deal Closed Won!',
-        message: `Opportunity successfully won! $${payload.value?.toLocaleString() || '0'} added.`,
+        message: `Opportunity successfully won! ₹${payload.value?.toLocaleString('en-IN') || '0'} added.`,
         link: '/deals',
         severity: 'success',
       });
@@ -83,12 +83,12 @@ export function useRealtimeEvents() {
       addToast({
         type: 'success',
         title: '💰 Payment Settled',
-        message: `Invoice payment for $${payload.amount?.toLocaleString() || ''} recorded.`,
+        message: `Invoice payment for ₹${payload.amount?.toLocaleString('en-IN') || ''} recorded.`,
       });
       addNotification({
         type: 'invoice',
         title: 'Payment Received',
-        message: `Payment of $${payload.amount?.toLocaleString() || ''} verified against invoice ${payload.invoiceId}.`,
+        message: `Payment of ₹${payload.amount?.toLocaleString('en-IN') || ''} verified against invoice ${payload.invoiceId}.`,
         link: '/invoices',
         severity: 'success',
       });

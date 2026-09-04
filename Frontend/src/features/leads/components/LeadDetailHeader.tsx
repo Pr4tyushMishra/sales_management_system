@@ -3,7 +3,7 @@ import { LeadScoreBadge } from './LeadScoreBadge';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { Select } from '@/components/ui/Select';
-import { Phone, Mail, Building2, DollarSign, UserCheck } from 'lucide-react';
+import { Phone, Mail, Building2, IndianRupee, UserCheck } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
 
 interface LeadDetailHeaderProps {
@@ -86,8 +86,8 @@ export function LeadDetailHeader({ lead, onCallClick, onEmailClick, onStatusChan
             Estimated Value
           </span>
           <span className="font-bold text-neutral-900 tabular-nums flex items-center gap-0.5 mt-0.5">
-            <DollarSign className="w-3 h-3 text-green-600" />
-            ${lead.estimatedValue.toLocaleString()}
+            <IndianRupee className="w-3 h-3 text-green-600" />
+            ₹{lead.estimatedValue.toLocaleString('en-IN')}
           </span>
         </div>
         <div>

@@ -16,7 +16,7 @@ import {
   Plus,
   Building2,
   Calendar,
-  DollarSign,
+  IndianRupee,
   Receipt,
   Trash2,
   AlertTriangle,
@@ -44,7 +44,7 @@ export function InvoicesPage() {
       recipientName: newCompany,
       recipientEmail: newRecipientEmail || `billing@${newCompany.toLowerCase().replace(/\s+/g, '')}.com`,
       amount: Number(newAmount) || 25000,
-      currency: 'USD',
+      currency: 'INR',
       dueDate: newDueDate,
       lineItems: [
         {
@@ -90,7 +90,7 @@ export function InvoicesPage() {
       align: 'right',
       cell: ({ row }) => (
         <span className="font-bold text-neutral-900 tabular-nums">
-          ${row.amount.toLocaleString()} {row.currency}
+          ₹{row.amount.toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -112,8 +112,12 @@ export function InvoicesPage() {
     {
       id: 'dueDate',
       header: 'Due Date',
+      sortable: true,
       cell: ({ row }) => (
-        <span className="font-mono text-neutral-600 text-[11px]">{row.dueDate}</span>
+        <span className="text-xs text-neutral-600 flex items-center gap-1.5 font-mono">
+          <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+          {row.dueDate}
+        </span>
       ),
     },
     {
@@ -186,10 +190,10 @@ export function InvoicesPage() {
         <WidgetBoundary name="kpi-total-collected">
           <KPICard
             label="Collected Revenue"
-            value={`$${invoices
+            value={`₹${invoices
               .filter((i) => i.status === 'PAID')
               .reduce((s, i) => s + i.amount, 0)
-              .toLocaleString()}`}
+              .toLocaleString('en-IN')}`}
             subtext="Paid invoices"
             accent="green"
             icon={<CreditCard className="w-4 h-4" />}
@@ -199,10 +203,10 @@ export function InvoicesPage() {
         <WidgetBoundary name="kpi-pending-invoices">
           <KPICard
             label="Pending Invoices"
-            value={`$${invoices
+            value={`₹${invoices
               .filter((i) => i.status === 'SENT')
               .reduce((s, i) => s + i.amount, 0)
-              .toLocaleString()}`}
+              .toLocaleString('en-IN')}`}
             subtext={`${invoices.filter((i) => i.status === 'SENT').length} Pending`}
             accent="blue"
             icon={<CheckCircle className="w-4 h-4" />}
@@ -262,10 +266,10 @@ export function InvoicesPage() {
             onChange={(e) => setNewRecipientEmail(e.target.value)}
           />
           <Input
-            label="Invoice Amount (USD) *"
+            label="Invoice Amount (INR) *"
             type="number"
             placeholder="50000"
-            leftIcon={<DollarSign className="w-4 h-4" />}
+            leftIcon={<IndianRupee className="w-4 h-4" />}
             value={newAmount}
             onChange={(e) => setNewAmount(e.target.value)}
             required
