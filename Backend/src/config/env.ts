@@ -19,7 +19,7 @@ const envSchema = z.object({
   SUPER_ADMIN_EMAIL: z.string().optional().default(''),
   SUPER_ADMIN_PASSWORD: z.string().optional().default(''),
 
-  MONGODB_URI: z.string().default('mongodb+srv://admin:salesos2026@cluster0.mongodb.net/advmen_salesos?retryWrites=true&w=majority'),
+  MONGODB_URI: z.string().default('mongodb URI'),
   REDIS_HOST: z.string().default('localhost'),
 
   REDIS_PORT: z.string().default('6379').transform((val) => parseInt(val, 10)),
